@@ -54,18 +54,18 @@ The app includes an admin widget that provides a link to trigger a manual import
 
 ### Building
 
-To build the project, run:
+To build the project run the following code
 
 ```bash
-./gradlew jar
+enonic project build
 ```
 
 ### Deploy locally
 
-Copy the built JAR to your sandbox deploy directory:
+Deploy locally for testing purposes:
 
 ```bash
-cp build/libs/*.jar $XP_HOME/deploy/
+enonic project deploy
 ```
 
 ### Running tests
