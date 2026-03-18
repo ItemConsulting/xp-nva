@@ -6,7 +6,7 @@ This application integrates with the [NVA API](https://api.nva.unit.no), to impo
 
 This is the successor to [xp-cristin](https://github.com/ItemConsulting/xp-cristin), as NVA replaces the Cristin APIs.
 
-<img src="https://github.com/ItemConsulting/xp-nva/raw/main/src/main/resources/application.svg?sanitize=true" width="150">
+<img src="src/main/resources/application.svg" width="150">
 
 ## Configuring your organization
 
