@@ -1,22 +1,75 @@
-# TypeScript Starter for Enonic XP
+# NVA application for XP
 
-This starter kit will set up an empty shell for your new Enonic app.
+[NVA](https://nva.sikt.no) (Nasjonalt vitenarkiv / National Research Archive) is a service for registering and sharing Norwegian research publications.
 
-Once initiated, you'll have the bare minimum needed to create a new Enonic
-application. You'll have all the folders set up, and can get
-straight to creating what you're creating.
+This application integrates with the [NVA API](https://api.nva.unit.no), to import and cache publication data locally in XP, making it easy to create a relation between NVA data and content in your XP application.
 
+This is the successor to [xp-cristin](https://github.com/ItemConsulting/xp-cristin), as NVA replaces the Cristin APIs.
 
-## Usage
+<img src="https://github.com/ItemConsulting/xp-nva/raw/main/src/main/resources/application.svg?sanitize=true" width="150">
 
-You first need to install Enonic CLI. Then run the following commands to build and deploy it:
+## Configuring your organization
 
-```bash
-~ $ enonic project create -r starter-ts
-... Answer wizard question
+This application imports data for **one organization**, specified in *no.item.xp.nva.cfg*.
 
-~ $ cd <project-folder>
-~/new-project $ enonic dev
+> **Warning** You need a config file **XP_HOME/config/no.item.xp.nva.cfg** with this configuration:
+> ```ini
+> institution=<my-institution-number>
+> ```
+
+## Using local copies of the NVA data
+
+We want to display data from NVA on our XP site, and to make it quick, searchable and robust, copies of data from the
+API are stored in a local [repo (Elastic Search Database)](https://developer.enonic.com/docs/xp/stable/api/lib-repo) in XP.
+
+Upon installation of this application – and then on a nightly schedule (03:00) – publication data from NVA is imported into the local repository:
+
+- `"no.item.nva.results"`
+
+Each node has the type `no.item.nva:result` and stores the full NVA API response in `data.raw`, along with flattened fields like `title` and `category` for efficient querying.
+
+## Creating a relation between NVA data and XP Content
+
+### NVA Result (Custom Selector)
+
+Use the `no.item.xp.nva:nva-result` CustomSelector-service to select a publication from NVA and store its ID on your Content.
+
+```xml
+<input name="cristinResultId" type="CustomSelector">
+  <label>Publications from NVA</label>
+  <occurrences minimum="0" maximum="0"/>
+  <config>
+    <service>no.item.xp.nva:nva-result</service>
+  </config>
+</input>
 ```
 
-Your brand new app should now be up and running on http://localhost:8080
+The selector searches the local cache first, falling back to the NVA API. You can search by title, author name, or Cristin ID.
+
+## Admin Widget
+
+The app includes an admin widget that provides a link to trigger a manual import of all NVA data for your configured institution.
+
+## Development
+
+### Building
+
+To build the project, run:
+
+```bash
+./gradlew jar
+```
+
+### Deploy locally
+
+Copy the built JAR to your sandbox deploy directory:
+
+```bash
+cp build/libs/*.jar $XP_HOME/deploy/
+```
+
+### Running tests
+
+```bash
+npm test
+```
