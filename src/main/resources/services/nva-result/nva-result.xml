@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<service>
+  <description>Custom selector service for searching and selecting NVA publications</description>
+  <allow>
+    <principal>role:system.admin</principal>
+    <principal>role:cms.admin</principal>
+    <principal>role:cms.cm.app</principal>
+  </allow>
+</service>

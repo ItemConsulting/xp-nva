@@ -1,0 +1,10 @@
+<widget>
+  <display-name>NVA</display-name>
+  <description>Trigger import tasks</description>
+  <interfaces>
+    <interface>admin.dashboard</interface>
+  </interfaces>
+  <allow>
+    <principal>role:system.admin</principal>
+  </allow>
+</widget>
