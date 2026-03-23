@@ -1,10 +1,16 @@
+import { serviceUrl } from "/lib/xp/portal";
+
 type AdminWidgetResponse = XP.Response<`<widget>${string}</widget>`>;
 
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 export function get(): AdminWidgetResponse {
-  const importUrl = "/_/service/no.item.xp.nva/import-all";
+  const importUrl = serviceUrl({ service: "import-all" });
 
   const markup = app.config.institution
-    ? `<a href="${importUrl}" target="_blank">Start importing all NVA data for institution with id=${app.config.institution}</a>`
+    ? `<a href="${escapeHtml(importUrl)}" target="_blank">Start importing all NVA data for institution with id=${escapeHtml(String(app.config.institution))}</a>`
     : `Please configure "no.item.xp.nva.cfg" with "institution=&lt;your-institution-number&gt;"`;
 
   return {

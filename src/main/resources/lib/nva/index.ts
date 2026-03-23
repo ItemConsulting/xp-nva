@@ -1,6 +1,7 @@
 // Public API for the NVA library
 export { searchNvaResults } from "./client";
-export { ensureRepoExists, importResults, getNodeName, getAllResultNodeNames } from "./repos";
+export { ensureRepoExists, importResults, markStaleResults, getNodeName } from "./repos";
+export type { UpsertCounts } from "./repos";
 export { lookupResult, lookupResults, searchLocalResults, lookupResultsByContributor } from "./storage";
 export { notNullOrUndefined, forceArray, extractUuidFromUri, getResultTitle, getCristinId, getPublicationYear } from "./utils";
 export {
@@ -27,5 +28,4 @@ export type {
   NvaSearchParams,
   NvaResultNode,
   NvaFacet,
-  ImportTaskConfig,
 } from "./types";

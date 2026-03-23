@@ -1,7 +1,11 @@
+import { progress } from "/lib/xp/task";
 import { searchNvaResults } from "../../lib/nva/client";
-import { importResults } from "../../lib/nva/repos";
+import { importResults, markStaleResults } from "../../lib/nva/repos";
 import { DEFAULT_PAGE_SIZE, MAX_PAGES } from "../../lib/nva/constants";
 import type { NvaResult } from "../../lib/nva/types";
+
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 5000;
 
 export function run() {
   const institution = app.config?.["institution"] ?? "";
@@ -17,19 +21,31 @@ export function run() {
   let totalModified = 0;
   let totalUnchanged = 0;
   let totalErrors = 0;
+  const allImportedNames: Array<string> = [];
   let page = 0;
+  let consecutiveFailures = 0;
+
+  // First pass: estimate total by fetching page 0
+  progress({ info: "Starting NVA import...", current: 0, total: MAX_PAGES });
 
   while (page < MAX_PAGES) {
-    const response = searchNvaResults({
-      institution,
-      page,
-      size: DEFAULT_PAGE_SIZE,
-    });
+    const response = fetchWithRetry(institution, page);
 
     if (!response || !response.hits || response.hits.length === 0) {
+      if (!response) {
+        consecutiveFailures++;
+        if (consecutiveFailures >= 3) {
+          log.warning(`NVA import aborting after ${consecutiveFailures} consecutive API failures at page ${page}`);
+          break;
+        }
+        // Skip this page and try the next
+        page++;
+        continue;
+      }
       break;
     }
 
+    consecutiveFailures = 0;
     const results: Array<NvaResult> = response.hits;
     totalFetched += results.length;
 
@@ -38,6 +54,20 @@ export function run() {
     totalModified += counts.modified;
     totalUnchanged += counts.unchanged;
     totalErrors += counts.errors;
+    for (const name of counts.importedNames) {
+      allImportedNames.push(name);
+    }
+
+    const estimatedTotal = Math.min(
+      Math.ceil(response.totalHits / DEFAULT_PAGE_SIZE),
+      MAX_PAGES
+    );
+
+    progress({
+      info: `Imported page ${page + 1}/${estimatedTotal} (${totalFetched} results)`,
+      current: page + 1,
+      total: estimatedTotal,
+    });
 
     log.info(
       `NVA import page ${page + 1}: fetched=${results.length}, ` +
@@ -52,9 +82,42 @@ export function run() {
     page++;
   }
 
+  // Mark stale results that were not seen in this import
+  let totalStale = 0;
+  if (allImportedNames.length > 0) {
+    progress({ info: "Marking stale results...", current: page + 1, total: page + 2 });
+    totalStale = markStaleResults(allImportedNames);
+  }
+
+  progress({
+    info: "NVA import complete",
+    current: 1,
+    total: 1,
+  });
+
   log.info(
     `NVA import complete: total fetched=${totalFetched}, ` +
       `created=${totalCreated}, modified=${totalModified}, ` +
-      `unchanged=${totalUnchanged}, errors=${totalErrors}`
+      `unchanged=${totalUnchanged}, errors=${totalErrors}, ` +
+      `stale=${totalStale}`
   );
+}
+
+function fetchWithRetry(institution: string, page: number, retries = 0): ReturnType<typeof searchNvaResults> {
+  const response = searchNvaResults({
+    institution,
+    page,
+    size: DEFAULT_PAGE_SIZE,
+  });
+
+  if (response) return response;
+
+  if (retries < MAX_RETRIES) {
+    log.warning(`NVA API call failed for page ${page}, retrying (${retries + 1}/${MAX_RETRIES})...`);
+    java.lang.Thread.sleep(RETRY_DELAY_MS);
+    return fetchWithRetry(institution, page, retries + 1);
+  }
+
+  log.warning(`NVA API call failed for page ${page} after ${MAX_RETRIES} retries`);
+  return undefined;
 }

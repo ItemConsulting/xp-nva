@@ -77,12 +77,3 @@ export function searchNvaResults(
     return undefined;
   }
 }
-
-/**
- * Fetch a single NVA result by its UUID identifier.
- */
-export function fetchNvaResult(
-  id: string
-): NvaSearchResponse | undefined {
-  return searchNvaResults({ query: id, page: 0, size: 1 });
-}

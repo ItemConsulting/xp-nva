@@ -127,8 +127,3 @@ export interface NvaResultNode {
   type: string;
   removedFromNva?: boolean;
 }
-
-// Import task configuration
-export interface ImportTaskConfig {
-  institution: string;
-}
