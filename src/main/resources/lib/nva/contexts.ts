@@ -1,11 +1,12 @@
 import { run as runInContext } from "/lib/xp/context";
 import { connect } from "/lib/xp/node";
+import type { PrincipalKey } from "/lib/xp/context";
 import { REPO_BRANCH } from "./constants";
 
-const ADMIN_PRINCIPALS = [
-  "role:system.admin",
-  "role:system.authenticated",
-  "role:system.everyone",
+const ADMIN_PRINCIPALS: Array<PrincipalKey> = [
+  "role:system.admin" as PrincipalKey,
+  "role:system.authenticated" as PrincipalKey,
+  "role:system.everyone" as PrincipalKey,
 ];
 
 export function runAsSu<T>(fn: () => T): T {

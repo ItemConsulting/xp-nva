@@ -1,27 +1,28 @@
 import { create as createRepo, get as getRepo } from "/lib/xp/repo";
+import type { AccessControlEntry } from "/lib/xp/repo";
 import { send } from "/lib/xp/event";
 import type { RepoConnection } from "/lib/xp/node";
 import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "./constants";
 import { runAsSu, connectToRepoAsAdmin } from "./contexts";
 import type { NvaResult, NvaResultNode } from "./types";
 
-const PERMISSIONS = [
+const PERMISSIONS: Array<AccessControlEntry> = [
   {
     principal: "role:system.everyone",
     allow: ["READ"],
-    deny: [] as Array<string>,
+    deny: [],
   },
   {
     principal: "role:system.authenticated",
     allow: ["READ"],
-    deny: [] as Array<string>,
+    deny: [],
   },
   {
     principal: "role:system.admin",
     allow: ["READ", "CREATE", "MODIFY", "DELETE", "PUBLISH", "READ_PERMISSIONS", "WRITE_PERMISSIONS"],
-    deny: [] as Array<string>,
+    deny: [],
   },
-];
+] as Array<AccessControlEntry>;
 
 /**
  * Ensures the NVA results repository exists. Returns true if it already existed.
@@ -96,9 +97,9 @@ export function importResults(results: Array<NvaResult>): UpsertCounts {
             || JSON.stringify(existing.data) !== JSON.stringify(result);
 
           if (hasChanged) {
-            conn.modify({
+            conn.modify<NvaResultNode>({
               key: existing._id,
-              editor: (node: NvaResultNode & Record<string, unknown>) => {
+              editor: (node) => {
                 node.data = result;
                 node.removedFromNva = false;
                 return node;
@@ -154,9 +155,9 @@ export function markStaleResults(importedNames: Array<string>): number {
       for (const hit of result.hits) {
         const node = conn.get<NvaResultNode & { _name: string }>(hit.id);
         if (node && !importedSet[node._name]) {
-          conn.modify({
+          conn.modify<NvaResultNode>({
             key: hit.id,
-            editor: (n: NvaResultNode & Record<string, unknown>) => {
+            editor: (n) => {
               n.removedFromNva = true;
               return n;
             },
@@ -192,7 +193,7 @@ function getNodeByName(conn: RepoConnection, name: string): (NvaResultNode & { _
     return undefined;
   }
 
-  const node = conn.get(queryResult.hits[0].id);
+  const node = conn.get<NvaResultNode & { _id: string }>(queryResult.hits[0].id);
   return node ?? undefined;
 }
 
