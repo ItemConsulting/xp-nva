@@ -1,25 +1,24 @@
 import { create as createRepo, get as getRepo } from "/lib/xp/repo";
+import type { AccessControlEntry } from "/lib/xp/repo";
 import { send } from "/lib/xp/event";
 import type { RepoConnection } from "/lib/xp/node";
 import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "./constants";
 import { runAsSu, connectToRepoAsAdmin } from "./contexts";
 import type { NvaResult, NvaResultNode } from "./types";
+import { stableStringify } from "./utils";
 
-const PERMISSIONS = [
+const PERMISSIONS: AccessControlEntry[] = [
   {
     principal: "role:system.everyone",
     allow: ["READ"],
-    deny: [] as Array<string>,
   },
   {
     principal: "role:system.authenticated",
     allow: ["READ"],
-    deny: [] as Array<string>,
   },
   {
     principal: "role:system.admin",
     allow: ["READ", "CREATE", "MODIFY", "DELETE", "PUBLISH", "READ_PERMISSIONS", "WRITE_PERMISSIONS"],
-    deny: [] as Array<string>,
   },
 ];
 
@@ -93,12 +92,12 @@ export function importResults(results: Array<NvaResult>): UpsertCounts {
           const newModified = result.recordMetadata?.modifiedDate;
 
           const hasChanged = existingModified !== newModified
-            || JSON.stringify(existing.data) !== JSON.stringify(result);
+            || stableStringify(existing.data) !== stableStringify(result);
 
           if (hasChanged) {
-            conn.modify({
+            conn.modify<NvaResultNode>({
               key: existing._id,
-              editor: (node: NvaResultNode & Record<string, unknown>) => {
+              editor: (node) => {
                 node.data = result;
                 node.removedFromNva = false;
                 return node;
@@ -151,12 +150,15 @@ export function markStaleResults(importedNames: Array<string>): number {
 
       if (result.hits.length === 0) break;
 
-      for (const hit of result.hits) {
-        const node = conn.get<NvaResultNode & { _name: string }>(hit.id);
+      const ids = result.hits.map((h) => h.id);
+      const nodes = conn.get<NvaResultNode>(ids);
+      const nodeArray = Array.isArray(nodes) ? nodes : nodes ? [nodes] : [];
+
+      for (const node of nodeArray) {
         if (node && !importedSet[node._name]) {
-          conn.modify({
-            key: hit.id,
-            editor: (n: NvaResultNode & Record<string, unknown>) => {
+          conn.modify<NvaResultNode>({
+            key: node._id,
+            editor: (n) => {
               n.removedFromNva = true;
               return n;
             },
@@ -181,7 +183,7 @@ export function markStaleResults(importedNames: Array<string>): number {
 /**
  * Look up a node by name (_name field) in the results repo.
  */
-function getNodeByName(conn: RepoConnection, name: string): (NvaResultNode & { _id: string }) | undefined {
+function getNodeByName(conn: RepoConnection, name: string) {
   const escapedName = name.replace(/'/g, "\\'");
   const queryResult = conn.query({
     query: `_name = '${escapedName}'`,
@@ -192,7 +194,6 @@ function getNodeByName(conn: RepoConnection, name: string): (NvaResultNode & { _
     return undefined;
   }
 
-  const node = conn.get(queryResult.hits[0].id);
-  return node ?? undefined;
+  return conn.get<NvaResultNode>(queryResult.hits[0].id) ?? undefined;
 }
 

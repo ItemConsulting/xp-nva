@@ -1,12 +1,10 @@
 import { serviceUrl } from "/lib/xp/portal";
 
-type AdminWidgetResponse = XP.Response<`<widget>${string}</widget>`>;
-
 function escapeHtml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-export function get(): AdminWidgetResponse {
+export function get(): XP.Response {
   const importUrl = serviceUrl({ service: "import-all" });
 
   const markup = app.config.institution

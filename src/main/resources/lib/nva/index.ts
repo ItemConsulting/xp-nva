@@ -3,7 +3,7 @@ export { searchNvaResults } from "./client";
 export { ensureRepoExists, importResults, markStaleResults, getNodeName } from "./repos";
 export type { UpsertCounts } from "./repos";
 export { lookupResult, lookupResults, searchLocalResults, lookupResultsByContributor } from "./storage";
-export { notNullOrUndefined, forceArray, extractUuidFromUri, getResultTitle, getCristinId, getPublicationYear } from "./utils";
+export { notNullOrUndefined, forceArray, extractUuidFromUri, getResultTitle, getCristinId, getPublicationYear, stableStringify } from "./utils";
 export {
   NVA_BASE_URL,
   NVA_SEARCH_URL,
