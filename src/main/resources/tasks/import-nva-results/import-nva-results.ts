@@ -1,8 +1,8 @@
 import { progress, list as listTasks } from "/lib/xp/task";
-import { searchNvaResults } from "../../lib/nva/client";
+import { searchNvaResults, fetchNvaSearchUrl } from "../../lib/nva/client";
 import { importResults, markStaleResults } from "../../lib/nva/repos";
 import { DEFAULT_PAGE_SIZE, MAX_PAGES } from "../../lib/nva/constants";
-import type { NvaResult } from "../../lib/nva/types";
+import type { NvaSearchResponse, NvaResult } from "../../lib/nva/types";
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 5000;
@@ -37,11 +37,16 @@ export function run() {
   let consecutiveFailures = 0;
   let importAborted = false;
 
-  // First pass: estimate total by fetching page 0
   progress({ info: "Starting NVA import...", current: 0, total: MAX_PAGES });
 
+  // First request uses search params; subsequent requests follow cursor links
+  let nextCursorUrl: string | undefined = undefined;
+  let isFirstPage = true;
+
   while (page < MAX_PAGES) {
-    const response = fetchWithRetry(institution, page);
+    const response = isFirstPage
+      ? fetchFirstPage(institution)
+      : fetchWithRetry(nextCursorUrl!, page);
 
     if (!response || !response.hits || response.hits.length === 0) {
       if (!response) {
@@ -51,7 +56,6 @@ export function run() {
           importAborted = true;
           break;
         }
-        // Skip this page and try the next
         page++;
         continue;
       }
@@ -59,6 +63,7 @@ export function run() {
     }
 
     consecutiveFailures = 0;
+    isFirstPage = false;
     const results: Array<NvaResult> = response.hits;
     totalFetched += results.length;
 
@@ -86,7 +91,9 @@ export function run() {
         `unchanged=${counts.unchanged}, errors=${counts.errors}`
     );
 
-    if (results.length < DEFAULT_PAGE_SIZE || totalFetched >= response.totalHits) {
+    // Use cursor-based pagination to avoid duplicates and missed results
+    nextCursorUrl = response.nextSearchAfterResults ?? undefined;
+    if (!nextCursorUrl || results.length < DEFAULT_PAGE_SIZE) {
       break;
     }
 
@@ -116,19 +123,33 @@ export function run() {
   );
 }
 
-function fetchWithRetry(institution: string, page: number, retries = 0): ReturnType<typeof searchNvaResults> {
-  const response = searchNvaResults({
-    institution,
-    page,
-    size: DEFAULT_PAGE_SIZE,
-  });
+function fetchFirstPage(institution: string): NvaSearchResponse | undefined {
+  return fetchWithRetryFn(0, () =>
+    searchNvaResults({
+      institution,
+      size: DEFAULT_PAGE_SIZE,
+      sort: "identifier",
+    })
+  );
+}
+
+function fetchWithRetry(url: string, page: number): NvaSearchResponse | undefined {
+  return fetchWithRetryFn(page, () => fetchNvaSearchUrl(url));
+}
+
+function fetchWithRetryFn(
+  page: number,
+  fetchFn: () => NvaSearchResponse | undefined,
+  retries = 0
+): NvaSearchResponse | undefined {
+  const response = fetchFn();
 
   if (response) return response;
 
   if (retries < MAX_RETRIES) {
     log.warning(`NVA API call failed for page ${page}, retrying (${retries + 1}/${MAX_RETRIES})...`);
     java.lang.Thread.sleep(RETRY_DELAY_MS);
-    return fetchWithRetry(institution, page, retries + 1);
+    return fetchWithRetryFn(page, fetchFn, retries + 1);
   }
 
   log.warning(`NVA API call failed for page ${page} after ${MAX_RETRIES} retries`);

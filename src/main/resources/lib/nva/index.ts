@@ -1,5 +1,5 @@
 // Public API for the NVA library
-export { searchNvaResults } from "./client";
+export { searchNvaResults, fetchNvaSearchUrl } from "./client";
 export { ensureRepoExists, importResults, markStaleResults, getNodeName } from "./repos";
 export type { UpsertCounts } from "./repos";
 export { lookupResult, lookupResults, searchLocalResults, lookupResultsByContributor } from "./storage";
