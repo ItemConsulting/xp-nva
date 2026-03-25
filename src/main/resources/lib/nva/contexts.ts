@@ -1,7 +1,7 @@
 import { run as runInContext } from "/lib/xp/context";
-import type { PrincipalKey } from "/lib/xp/context";
 import { connect } from "/lib/xp/node";
 import { REPO_BRANCH } from "./constants";
+import type { PrincipalKey } from "/lib/xp/context";
 
 const ADMIN_PRINCIPALS: PrincipalKey[] = [
   "role:system.admin",

@@ -20,7 +20,7 @@ const PERMISSIONS: AccessControlEntry[] = [
     principal: "role:system.admin",
     allow: ["READ", "CREATE", "MODIFY", "DELETE", "PUBLISH", "READ_PERMISSIONS", "WRITE_PERMISSIONS"],
   },
-];
+] as Array<AccessControlEntry>;
 
 /**
  * Ensures the NVA results repository exists. Returns true if it already existed.
