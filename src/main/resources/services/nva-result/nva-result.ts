@@ -1,24 +1,29 @@
 import { searchNvaResults } from "../../lib/nva/client";
-import { searchLocalResults } from "../../lib/nva/storage";
+import { lookupResult, searchLocalResults } from "../../lib/nva/storage";
 import { extractUuidFromUri, getResultTitle, getCristinId, getPublicationYear } from "../../lib/nva/utils";
 import type { NvaResult } from "../../lib/nva/types";
 
 /**
  * Custom selector service for picking NVA results in Content Studio.
  */
+function paramString(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] ?? "";
+  return value ?? "";
+}
+
 export function get(req: XP.Request): XP.Response {
-  const query = (req.params?.query ?? "").trim();
-  const start = parseInt(req.params?.start ?? "0", 10);
-  const count = parseInt(req.params?.count ?? "10", 10);
-  const ids = req.params?.ids;
+  const query = paramString(req.params?.query).trim();
+  const start = parseInt(paramString(req.params?.start) || "0", 10);
+  const count = parseInt(paramString(req.params?.count) || "10", 10);
+  const ids = paramString(req.params?.ids);
 
   // If specific IDs are requested, look them up
   if (ids) {
     const idList = ids.split(",").map((id: string) => id.trim());
     const hits = idList.map((id: string) => {
-      const localResult = searchLocalResults(id, 0, 1);
-      if (localResult.results.length > 0) {
-        return formatHit(localResult.results[0]);
+      const result = lookupResult(id);
+      if (result) {
+        return formatHit(result);
       }
       return { id, displayName: id, description: "Not found in local cache" };
     });
