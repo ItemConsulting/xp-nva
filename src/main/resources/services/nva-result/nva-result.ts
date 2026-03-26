@@ -31,7 +31,7 @@ export function get(req: XP.Request): XP.Response {
     return {
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ total: hits.length, count: hits.length, hits }),
+      body: { total: hits.length, count: hits.length, hits },
     };
   }
 
@@ -48,7 +48,7 @@ export function get(req: XP.Request): XP.Response {
       return {
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ total: response.totalHits, count: hits.length, hits }),
+        body: { total: response.totalHits, count: hits.length, hits },
       };
     }
   }
@@ -61,7 +61,7 @@ export function get(req: XP.Request): XP.Response {
     return {
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ total: localResult.total, count: hits.length, hits }),
+      body: { total: localResult.total, count: hits.length, hits },
     };
   }
 
@@ -78,7 +78,7 @@ export function get(req: XP.Request): XP.Response {
       return {
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ total: response.totalHits, count: hits.length, hits }),
+        body: { total: response.totalHits, count: hits.length, hits },
       };
     }
   }
@@ -87,16 +87,28 @@ export function get(req: XP.Request): XP.Response {
   return {
     status: 200,
     contentType: "application/json",
-    body: JSON.stringify({ total: 0, count: 0, hits: [] }),
+    body: { total: 0, count: 0, hits: [] },
   };
 }
 
 function formatHit(result: NvaResult) {
-  const uuid = extractUuidFromUri(result.id);
+  var stored = result as unknown as Record<string, unknown>;
+  var resultId = result.id;
+  // For stored nodes, id might be XP node id — check for entityDescription to detect stored structure
+  var ed = stored.entityDescription as Record<string, unknown> | undefined;
+  var uuid = resultId ? extractUuidFromUri(resultId) : "";
   const title = getResultTitle(result);
   const year = getPublicationYear(result);
   const cristinId = getCristinId(result);
-  const type = result.type ?? "";
+  var type = result.type ?? "";
+  // For stored nodes, get the publication instance type from entityDescription
+  if (ed) {
+    var ref = ed.reference as Record<string, unknown> | undefined;
+    if (ref) {
+      var pi = ref.publicationInstance as Record<string, string> | undefined;
+      if (pi && pi.type) type = pi.type;
+    }
+  }
 
   const descParts: Array<string> = [];
   if (type) descParts.push(type);

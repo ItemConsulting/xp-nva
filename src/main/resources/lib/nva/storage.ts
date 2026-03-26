@@ -67,10 +67,10 @@ export function searchLocalResults(
   const escapedQuery = escapeNoql(query);
   const queryResult = conn.query({
     query: `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'` +
-      (query ? ` AND fulltext('data.mainTitle', '${escapedQuery}', 'AND')` : ""),
+      (query ? ` AND fulltext('data.entityDescription.mainTitle', '${escapedQuery}', 'AND')` : ""),
     start,
     count,
-    sort: "data.publicationDate.year DESC",
+    sort: "data.entityDescription.publicationDate.year DESC",
   });
 
   const results = batchGetResults(conn, queryResult.hits);
@@ -90,10 +90,10 @@ export function lookupResultsByContributor(
   const escapedUri = escapeNoql(contributorUri);
   const queryResult = conn.query({
     query: `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'` +
-      ` AND data.contributorsPreview.identity.id = '${escapedUri}'`,
+      ` AND data.entityDescription.contributorsPreview.identity.id = '${escapedUri}'`,
     start,
     count,
-    sort: "data.publicationDate.year DESC",
+    sort: "data.entityDescription.publicationDate.year DESC",
   });
 
   const results = batchGetResults(conn, queryResult.hits);
