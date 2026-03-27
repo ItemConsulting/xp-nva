@@ -92,20 +92,20 @@ export function get(req: XP.Request): XP.Response {
 }
 
 function formatHit(result: NvaResult) {
-  var stored = result as unknown as Record<string, unknown>;
-  var resultId = result.id;
+  const stored = result as unknown as Record<string, unknown>;
+  const resultId = result.id;
   // For stored nodes, id might be XP node id — check for entityDescription to detect stored structure
-  var ed = stored.entityDescription as Record<string, unknown> | undefined;
-  var uuid = resultId ? extractUuidFromUri(resultId) : "";
+  const ed = stored.entityDescription as Record<string, unknown> | undefined;
+  const uuid = resultId ? extractUuidFromUri(resultId) : "";
   const title = getResultTitle(result);
   const year = getPublicationYear(result);
   const cristinId = getCristinId(result);
-  var type = result.type ?? "";
+  let type = result.type ?? "";
   // For stored nodes, get the publication instance type from entityDescription
   if (ed) {
-    var ref = ed.reference as Record<string, unknown> | undefined;
+    const ref = ed.reference as Record<string, unknown> | undefined;
     if (ref) {
-      var pi = ref.publicationInstance as Record<string, string> | undefined;
+      const pi = ref.publicationInstance as Record<string, string> | undefined;
       if (pi && pi.type) type = pi.type;
     }
   }

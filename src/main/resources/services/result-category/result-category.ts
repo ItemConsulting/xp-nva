@@ -1,6 +1,5 @@
 import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "../../lib/nva/constants";
 import { connectToRepoAsAdmin } from "../../lib/nva/contexts";
-import type { NvaResultNode } from "../../lib/nva/types";
 
 /**
  * Custom selector service for picking NVA result categories (publication instance types)

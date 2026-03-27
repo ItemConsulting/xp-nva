@@ -106,7 +106,7 @@ function searchContributors(query: string, count: number): XP.Response {
 
   const hits: Array<{ id: string; displayName: string; description: string }> = [];
   for (const key in seen) {
-    if (seen.hasOwnProperty(key)) {
+    if (Object.hasOwn(seen, key)) {
       hits.push(seen[key]);
     }
   }

@@ -62,12 +62,12 @@ function searchFunding(query: string, count: number): XP.Response {
 
       if (query && identifier.toLowerCase().indexOf(query.toLowerCase()) === -1) continue;
 
-      var sourceObj = f.source as unknown;
-      var sourceName = "";
+      const sourceObj = f.source as unknown;
+      let sourceName = "";
       if (sourceObj && typeof sourceObj === "object") {
-        var s = sourceObj as Record<string, unknown>;
+        const s = sourceObj as Record<string, unknown>;
         // source.labels.en or source.labels.nb or source.identifier
-        var labels = s.labels as Record<string, string> | undefined;
+        const labels = s.labels as Record<string, string> | undefined;
         if (labels) {
           sourceName = labels.en || labels.nb || "";
         }
@@ -92,7 +92,7 @@ function searchFunding(query: string, count: number): XP.Response {
 
   const hits: Array<{ id: string; displayName: string; description: string }> = [];
   for (const key in seen) {
-    if (seen.hasOwnProperty(key)) {
+    if (Object.hasOwn(seen, key)) {
       hits.push(seen[key]);
     }
   }

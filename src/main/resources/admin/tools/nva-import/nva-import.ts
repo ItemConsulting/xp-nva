@@ -4,37 +4,37 @@ import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "../../../lib/nva/constan
 import { connectToRepoAsAdmin } from "../../../lib/nva/contexts";
 
 export function get(): XP.Response {
-  var institution = app.config.institution;
-  var importUrl = serviceUrl({ service: "import-all" });
+  const institution = app.config.institution;
+  const importUrl = serviceUrl({ service: "import-all" });
 
-  var resultCount = 0;
-  var staleCount = 0;
+  let resultCount = 0;
+  let staleCount = 0;
   try {
-    var conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
-    var totalResult = conn.query({
+    const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
+    const totalResult = conn.query({
       query: "type = '" + NODE_TYPE_NVA_RESULT + "'",
       count: 0,
     });
     resultCount = totalResult.total;
 
-    var staleResult = conn.query({
+    const staleResult = conn.query({
       query: "type = '" + NODE_TYPE_NVA_RESULT + "' AND removedFromNva = 'true'",
       count: 0,
     });
     staleCount = staleResult.total;
-  } catch (e) {
+  } catch {
     // Repo may not exist yet
   }
 
-  var runningTasks = listTasks({ name: app.name + ":import-nva-results", state: "RUNNING" });
-  var isRunning = runningTasks.length > 0;
-  var taskInfo = "";
+  const runningTasks = listTasks({ name: app.name + ":import-nva-results", state: "RUNNING" });
+  const isRunning = runningTasks.length > 0;
+  let taskInfo = "";
 
   if (isRunning) {
-    var task = runningTasks[0];
-    var progress = task.progress;
+    const task = runningTasks[0];
+    const progress = task.progress;
     if (progress && progress.total > 0) {
-      var pct = Math.round((progress.current / progress.total) * 100);
+      const pct = Math.round((progress.current / progress.total) * 100);
       taskInfo = "<p class=\"status running\">Import in progress: " + progress.current + " / " + progress.total + " (" + pct + "%)</p>";
       if (progress.info) {
         taskInfo += "<p class=\"status-detail\">" + escapeHtml(progress.info) + "</p>";
@@ -44,11 +44,11 @@ export function get(): XP.Response {
     }
   }
 
-  var configSection = institution
+  const configSection = institution
     ? "<p class=\"config\">Institution ID: <strong>" + escapeHtml(String(institution)) + "</strong></p>"
     : "<p class=\"status error\">Not configured. Add <code>institution=&lt;id&gt;</code> to <code>no.item.xp.nva.cfg</code></p>";
 
-  var body = "<!doctype html>"
+  const body = "<!doctype html>"
     + "<html><head>"
     + "<title>NVA Import</title>"
     + "<style>"
