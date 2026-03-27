@@ -12,9 +12,9 @@ function paramString(value: string | string[] | undefined): string {
 }
 
 export function get(req: XP.Request): XP.Response {
-  const query = paramString(req.params?.query).trim();
-  const start = parseInt(paramString(req.params?.start) || "0", 10);
-  const count = parseInt(paramString(req.params?.count) || "10", 10);
+  const query = paramString(req.params?.query).trim().slice(0, 500);
+  const start = Math.max(0, parseInt(paramString(req.params?.start) || "0", 10) || 0);
+  const count = Math.min(100, Math.max(1, parseInt(paramString(req.params?.count) || "10", 10) || 10));
   const ids = paramString(req.params?.ids);
 
   // If specific IDs are requested, look them up
@@ -92,23 +92,11 @@ export function get(req: XP.Request): XP.Response {
 }
 
 function formatHit(result: NvaResult) {
-  const stored = result as unknown as Record<string, unknown>;
-  const resultId = result.id;
-  // For stored nodes, id might be XP node id — check for entityDescription to detect stored structure
-  const ed = stored.entityDescription as Record<string, unknown> | undefined;
-  const uuid = resultId ? extractUuidFromUri(resultId) : "";
+  const uuid = result.id ? extractUuidFromUri(result.id) : "";
   const title = getResultTitle(result);
   const year = getPublicationYear(result);
   const cristinId = getCristinId(result);
-  let type = result.type ?? "";
-  // For stored nodes, get the publication instance type from entityDescription
-  if (ed) {
-    const ref = ed.reference as Record<string, unknown> | undefined;
-    if (ref) {
-      const pi = ref.publicationInstance as Record<string, string> | undefined;
-      if (pi && pi.type) type = pi.type;
-    }
-  }
+  const type = result.entityDescription?.reference?.publicationInstance?.type ?? result.type ?? "";
 
   const descParts: Array<string> = [];
   if (type) descParts.push(type);

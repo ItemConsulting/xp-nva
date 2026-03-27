@@ -8,9 +8,9 @@ import { forceArray } from "../../lib/nva/utils";
  * Searches the local NVA results repo for unique funding project codes.
  */
 export function get(req: XP.Request): XP.Response {
-  const query = (req.params?.query ?? "").trim();
+  const query = (req.params?.query ?? "").trim().slice(0, 500);
   const ids = req.params?.ids;
-  const count = parseInt(req.params?.count ?? "20", 10);
+  const count = Math.min(100, Math.max(1, parseInt(req.params?.count ?? "20", 10) || 20));
 
   if (ids) {
     return lookupByIds(ids);
@@ -46,13 +46,16 @@ function searchFunding(query: string, count: number): XP.Response {
     sort: "data.entityDescription.publicationDate.year DESC",
   });
 
+  // Batch-fetch all matching nodes
+  const hitIds = result.hits.map((h) => h.id);
+  const nodes = hitIds.length > 0 ? forceArray(conn.get<NvaResultNode>(hitIds)).filter((n) => n?.data) : [];
+
   // Collect unique funding identifiers
   const seen: Record<string, { id: string; displayName: string; description: string }> = {};
   let seenCount = 0;
 
-  for (let h = 0; h < result.hits.length; h++) {
-    const node = conn.get<NvaResultNode>(result.hits[h].id);
-    if (!node?.data) continue;
+  for (let h = 0; h < nodes.length; h++) {
+    const node = nodes[h];
 
     const fundings = forceArray((node.data as Record<string, unknown>).fundings as Array<{ identifier?: string; source?: string }> ?? []);
     for (let i = 0; i < fundings.length; i++) {

@@ -17,6 +17,11 @@ export interface NvaFacet {
   labels: Record<string, string>;
 }
 
+export interface NvaFunding {
+  identifier?: string;
+  source?: string | { identifier?: string; labels?: Record<string, string> };
+}
+
 export interface NvaResult {
   id: string;
   type: string;
@@ -30,6 +35,18 @@ export interface NvaResult {
   contributorsPreview?: Array<NvaContributorPreview>;
   contributorsCount?: number;
   publishingDetails?: NvaPublishingDetails;
+  fundings?: Array<NvaFunding>;
+  entityDescription?: {
+    mainTitle?: string;
+    publicationDate?: NvaPublicationDate;
+    contributorsPreview?: Array<NvaContributorPreview>;
+    abstract?: string;
+    reference?: {
+      doi?: string;
+      publicationContext?: { name?: string; title?: string };
+      publicationInstance?: { type?: string };
+    };
+  };
 }
 
 export interface NvaOtherIdentifiers {

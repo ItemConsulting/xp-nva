@@ -137,6 +137,21 @@ export function markStaleResults(importedNames: Array<string>): number {
       importedSet[name] = true;
     }
 
+    // Safety check: count active results and refuse to mark stale if imported set
+    // is less than 50% of existing active results (likely incomplete import)
+    const activeCount = conn.query({
+      query: `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`,
+      count: 0,
+    }).total;
+
+    if (activeCount > 0 && importedNames.length < activeCount * 0.5) {
+      log.warning(
+        `Skipping stale-marking: imported ${importedNames.length} results but repo has ${activeCount} active results. ` +
+        `This looks like an incomplete import (threshold: 50%).`
+      );
+      return 0;
+    }
+
     let markedCount = 0;
     let start = 0;
     const batchSize = 1000;

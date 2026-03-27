@@ -27,37 +27,22 @@ export function extractUuidFromUri(uri: string): string {
  * Get a display title for an NVA result, with fallback.
  */
 export function getResultTitle(result: NvaResult): string {
-  // Handle both flattened NvaResult type and actual stored structure (nested under entityDescription)
-  const stored = result as unknown as Record<string, unknown>;
-  const ed = stored.entityDescription as Record<string, unknown> | undefined;
-  if (ed && typeof ed.mainTitle === "string") return ed.mainTitle;
-  return result.mainTitle ?? "Untitled";
+  return result.entityDescription?.mainTitle ?? result.mainTitle ?? "Untitled";
 }
 
 /**
  * Get the first Cristin ID from a result's otherIdentifiers, if present.
  */
 export function getCristinId(result: NvaResult): string | undefined {
-  var stored = result as unknown as Record<string, unknown>;
-  const oi = (stored.otherIdentifiers ?? result.otherIdentifiers) as Record<string, Array<string>> | undefined;
-  if (oi) {
-    const cristinIds = oi.cristin;
-    if (cristinIds && cristinIds.length > 0) return cristinIds[0];
-  }
-  return undefined;
+  const cristinIds = result.otherIdentifiers?.cristin;
+  return cristinIds && cristinIds.length > 0 ? cristinIds[0] : undefined;
 }
 
 /**
  * Get the publication year from a result.
  */
 export function getPublicationYear(result: NvaResult): string | undefined {
-  const stored = result as unknown as Record<string, unknown>;
-  const ed = stored.entityDescription as Record<string, unknown> | undefined;
-  if (ed) {
-    const pd = ed.publicationDate as Record<string, string> | undefined;
-    if (pd && pd.year) return pd.year;
-  }
-  return result.publicationDate?.year;
+  return result.entityDescription?.publicationDate?.year ?? result.publicationDate?.year;
 }
 
 /**

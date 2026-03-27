@@ -1,7 +1,7 @@
 import { progress, list as listTasks } from "/lib/xp/task";
 import { searchNvaResults, fetchNvaSearchUrl } from "../../lib/nva/client";
 import { importResults, markStaleResults } from "../../lib/nva/repos";
-import { DEFAULT_PAGE_SIZE, MAX_PAGES } from "../../lib/nva/constants";
+import { DEFAULT_PAGE_SIZE, MAX_PAGES, NVA_BASE_URL } from "../../lib/nva/constants";
 import type { NvaSearchResponse, NvaResult } from "../../lib/nva/types";
 
 const MAX_RETRIES = 2;
@@ -48,17 +48,18 @@ export function run() {
       ? fetchFirstPage(institution)
       : fetchWithRetry(nextCursorUrl!, page);
 
-    if (!response || !response.hits || response.hits.length === 0) {
-      if (!response) {
-        consecutiveFailures++;
-        if (consecutiveFailures >= 3) {
-          log.warning(`NVA import aborting after ${consecutiveFailures} consecutive API failures at page ${page}`);
-          importAborted = true;
-          break;
-        }
-        page++;
-        continue;
+    if (!response) {
+      consecutiveFailures++;
+      if (consecutiveFailures >= 3) {
+        log.warning(`NVA import aborting after ${consecutiveFailures} consecutive API failures at page ${page}`);
+        importAborted = true;
+        break;
       }
+      // Retry the same page — don't increment page or update cursor
+      continue;
+    }
+
+    if (!response.hits || response.hits.length === 0) {
       break;
     }
 
@@ -92,7 +93,8 @@ export function run() {
     );
 
     // Use cursor-based pagination to avoid duplicates and missed results
-    nextCursorUrl = response.nextSearchAfterResults ?? undefined;
+    const candidateUrl = response.nextSearchAfterResults ?? undefined;
+    nextCursorUrl = candidateUrl && candidateUrl.indexOf(NVA_BASE_URL) === 0 ? candidateUrl : undefined;
     if (!nextCursorUrl || results.length < DEFAULT_PAGE_SIZE) {
       break;
     }

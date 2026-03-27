@@ -8,9 +8,9 @@ import type { NvaResultNode } from "../../lib/nva/types";
  * Returns Cristin person IDs as values, with contributor names as display names.
  */
 export function get(req: XP.Request): XP.Response {
-  const query = (req.params?.query ?? "").trim();
+  const query = (req.params?.query ?? "").trim().slice(0, 500);
   const ids = req.params?.ids;
-  const count = parseInt(req.params?.count ?? "20", 10);
+  const count = Math.min(100, Math.max(1, parseInt(req.params?.count ?? "20", 10) || 20));
 
   if (ids) {
     return lookupByIds(ids);
@@ -24,10 +24,21 @@ function lookupByIds(ids: string): XP.Response {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
 
   const hits = idList.map((cristinId) => {
+    // Validate cristinId is numeric to prevent NoQL injection
+    if (!/^\d+$/.test(cristinId)) {
+      return { id: cristinId, displayName: `Person ${cristinId}`, description: "Invalid Cristin ID" };
+    }
     const contributorUri = `https://api.nva.unit.no/cristin/person/${cristinId}`;
     const result = conn.query({
       count: 1,
-      query: `type = '${NODE_TYPE_NVA_RESULT}' AND data.entityDescription.contributorsPreview.identity.id = '${cristinId}'`
+      filters: {
+        boolean: {
+          must: [
+            { hasValue: { field: "type", values: [NODE_TYPE_NVA_RESULT] } },
+          ],
+        },
+      },
+      query: `data.entityDescription.contributorsPreview.identity.id = '${cristinId}'`
         + ` OR data.entityDescription.contributorsPreview.identity.id = '${contributorUri}'`,
     });
 
@@ -70,13 +81,16 @@ function searchContributors(query: string, count: number): XP.Response {
     sort: "data.entityDescription.publicationDate.year DESC",
   });
 
+  // Batch-fetch all matching nodes
+  const hitIds = result.hits.map((h) => h.id);
+  const nodes = hitIds.length > 0 ? forceArray(conn.get<NvaResultNode>(hitIds)).filter((n) => n?.data) : [];
+
   // Collect unique contributors across all matching results
   const seen: Record<string, { id: string; displayName: string; description: string }> = {};
   let seenCount = 0;
 
-  for (let h = 0; h < result.hits.length; h++) {
-    const node = conn.get<NvaResultNode>(result.hits[h].id);
-    if (!node?.data) continue;
+  for (let h = 0; h < nodes.length; h++) {
+    const node = nodes[h];
 
     const contributors = forceArray(node.data.entityDescription?.contributorsPreview ?? []);
     for (let i = 0; i < contributors.length; i++) {
