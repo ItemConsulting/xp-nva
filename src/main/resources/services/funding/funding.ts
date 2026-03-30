@@ -35,9 +35,9 @@ function searchFunding(query: string, count: number): XP.Response {
 
   // Query results that have funding data
   const noqlQuery = query
-    ? `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`
+    ? `type = '${NODE_TYPE_NVA_RESULT}'`
       + ` AND data.fundings.identifier LIKE '*${escapeNoql(query)}*'`
-    : `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`
+    : `type = '${NODE_TYPE_NVA_RESULT}'`
       + ` AND data.fundings.identifier LIKE '*'`;
 
   const result = conn.query({

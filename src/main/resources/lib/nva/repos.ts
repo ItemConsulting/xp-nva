@@ -99,7 +99,6 @@ export function importResults(results: Array<NvaResult>): UpsertCounts {
               key: existing._id,
               editor: (node) => {
                 node.data = result;
-                node.removedFromNva = false;
                 return node;
               },
             });
@@ -126,10 +125,10 @@ export function importResults(results: Array<NvaResult>): UpsertCounts {
 }
 
 /**
- * Mark nodes as removed from NVA if they weren't seen in the current import.
- * Returns the number of nodes marked as removed.
+ * Delete nodes that weren't seen in the current import.
+ * Returns the number of nodes deleted.
  */
-export function markStaleResults(importedNames: Array<string>): number {
+export function deleteStaleResults(importedNames: Array<string>): number {
   return runAsSu(() => {
     const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
     const importedSet: Record<string, boolean> = {};
@@ -137,28 +136,28 @@ export function markStaleResults(importedNames: Array<string>): number {
       importedSet[name] = true;
     }
 
-    // Safety check: count active results and refuse to mark stale if imported set
-    // is less than 50% of existing active results (likely incomplete import)
+    // Safety check: count existing results and refuse to delete if imported set
+    // is less than 50% of existing results (likely incomplete import)
     const activeCount = conn.query({
-      query: `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`,
+      query: `type = '${NODE_TYPE_NVA_RESULT}'`,
       count: 0,
     }).total;
 
     if (activeCount > 0 && importedNames.length < activeCount * 0.5) {
       log.warning(
-        `Skipping stale-marking: imported ${importedNames.length} results but repo has ${activeCount} active results. ` +
+        `Skipping stale deletion: imported ${importedNames.length} results but repo has ${activeCount} results. ` +
         `This looks like an incomplete import (threshold: 50%).`
       );
       return 0;
     }
 
-    let markedCount = 0;
+    let deletedCount = 0;
     let start = 0;
     const batchSize = 1000;
 
     while (true) {
       const result = conn.query({
-        query: `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`,
+        query: `type = '${NODE_TYPE_NVA_RESULT}'`,
         start,
         count: batchSize,
       });
@@ -169,29 +168,28 @@ export function markStaleResults(importedNames: Array<string>): number {
       const nodes = conn.get<NvaResultNode>(ids);
       const nodeArray = Array.isArray(nodes) ? nodes : nodes ? [nodes] : [];
 
+      const toDelete: Array<string> = [];
       for (const node of nodeArray) {
         if (node && !importedSet[node._name]) {
-          conn.modify<NvaResultNode>({
-            key: node._id,
-            editor: (n) => {
-              n.removedFromNva = true;
-              return n;
-            },
-          });
-          markedCount++;
+          toDelete.push(node._id);
         }
+      }
+
+      for (const id of toDelete) {
+        conn.delete(id);
+        deletedCount++;
       }
 
       if (start + batchSize >= result.total) break;
       start += batchSize;
     }
 
-    if (markedCount > 0) {
+    if (deletedCount > 0) {
       conn.refresh("ALL");
-      log.info(`Marked ${markedCount} results as removed from NVA`);
+      log.info(`Deleted ${deletedCount} stale results from NVA repo`);
     }
 
-    return markedCount;
+    return deletedCount;
   });
 }
 

@@ -13,7 +13,7 @@ export function lookupResult(name: string): NvaResult | undefined {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
   const escapedName = escapeNoql(name);
   const queryResult = conn.query({
-    query: `_name = '${escapedName}' AND type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`,
+    query: `_name = '${escapedName}' AND type = '${NODE_TYPE_NVA_RESULT}'`,
     count: 1,
   });
 
@@ -33,7 +33,7 @@ export function lookupResults(names: Array<string>): Array<NvaResult> {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
   const nameConditions = names.map((n) => `_name = '${escapeNoql(n)}'`).join(" OR ");
   const queryResult = conn.query({
-    query: `(${nameConditions}) AND type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`,
+    query: `(${nameConditions}) AND type = '${NODE_TYPE_NVA_RESULT}'`,
     count: names.length,
   });
 
@@ -66,7 +66,7 @@ export function searchLocalResults(
 
   const escapedQuery = escapeNoql(query);
   const queryResult = conn.query({
-    query: `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'` +
+    query: `type = '${NODE_TYPE_NVA_RESULT}'` +
       (query ? ` AND fulltext('data.entityDescription.mainTitle', '${escapedQuery}', 'AND')` : ""),
     start,
     count,
@@ -89,7 +89,7 @@ export function lookupResultsByContributor(
 
   const escapedUri = escapeNoql(contributorUri);
   const queryResult = conn.query({
-    query: `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'` +
+    query: `type = '${NODE_TYPE_NVA_RESULT}'` +
       ` AND data.entityDescription.contributorsPreview.identity.id = '${escapedUri}'`,
     start,
     count,

@@ -1,6 +1,6 @@
 import { progress, list as listTasks } from "/lib/xp/task";
 import { searchNvaResults, fetchNvaSearchUrl } from "../../lib/nva/client";
-import { importResults, markStaleResults } from "../../lib/nva/repos";
+import { importResults, deleteStaleResults } from "../../lib/nva/repos";
 import { DEFAULT_PAGE_SIZE, MAX_PAGES, NVA_BASE_URL } from "../../lib/nva/constants";
 import type { NvaSearchResponse, NvaResult } from "../../lib/nva/types";
 
@@ -102,13 +102,13 @@ export function run() {
     page++;
   }
 
-  // Mark stale results that were not seen in this import (only if import completed fully)
+  // Delete stale results that were not seen in this import (only if import completed fully)
   let totalStale = 0;
   if (allImportedNames.length > 0 && !importAborted) {
-    progress({ info: "Marking stale results...", current: page + 1, total: page + 2 });
-    totalStale = markStaleResults(allImportedNames);
+    progress({ info: "Deleting stale results...", current: page + 1, total: page + 2 });
+    totalStale = deleteStaleResults(allImportedNames);
   } else if (importAborted) {
-    log.warning("Skipping stale-marking because the import was aborted — partial imports may produce false positives");
+    log.warning("Skipping stale deletion because the import was aborted — partial imports may produce false positives");
   }
 
   progress({

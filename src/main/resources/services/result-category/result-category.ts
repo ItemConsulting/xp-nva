@@ -27,7 +27,7 @@ function listCategories(query: string): XP.Response {
 
   // Fetch a batch of results to extract unique categories
   const result = conn.query({
-    query: `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`,
+    query: `type = '${NODE_TYPE_NVA_RESULT}'`,
     count: 0,
     aggregations: {
       categories: {

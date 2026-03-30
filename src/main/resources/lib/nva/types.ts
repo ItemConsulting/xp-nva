@@ -143,5 +143,4 @@ export interface NvaResultNode {
   _name: string;
   data: NvaResult;
   type: string;
-  removedFromNva?: boolean;
 }

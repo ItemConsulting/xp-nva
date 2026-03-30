@@ -8,7 +8,6 @@ export function get(): XP.Response {
   const importUrl = serviceUrl({ service: "import-all" });
 
   let resultCount = 0;
-  let staleCount = 0;
   try {
     const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
     const totalResult = conn.query({
@@ -16,12 +15,6 @@ export function get(): XP.Response {
       count: 0,
     });
     resultCount = totalResult.total;
-
-    const staleResult = conn.query({
-      query: "type = '" + NODE_TYPE_NVA_RESULT + "' AND removedFromNva = 'true'",
-      count: 0,
-    });
-    staleCount = staleResult.total;
   } catch {
     // Repo may not exist yet
   }
@@ -78,9 +71,7 @@ export function get(): XP.Response {
     + "<div class=\"card\">"
     + "<h2>Repository Status</h2>"
     + "<div class=\"stats\">"
-    + "<div class=\"stat\"><div class=\"stat-value\">" + (resultCount - staleCount) + "</div><div class=\"stat-label\">Active results</div></div>"
-    + "<div class=\"stat\"><div class=\"stat-value\">" + staleCount + "</div><div class=\"stat-label\">Stale results</div></div>"
-    + "<div class=\"stat\"><div class=\"stat-value\">" + resultCount + "</div><div class=\"stat-label\">Total in repo</div></div>"
+    + "<div class=\"stat\"><div class=\"stat-value\">" + resultCount + "</div><div class=\"stat-label\">Results in repo</div></div>"
     + "</div>"
     + configSection
     + "</div>"

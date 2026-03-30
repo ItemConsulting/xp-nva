@@ -71,9 +71,9 @@ function searchContributors(query: string, count: number): XP.Response {
 
   // Query NVA results that have matching contributor names
   const noqlQuery = query
-    ? `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`
+    ? `type = '${NODE_TYPE_NVA_RESULT}'`
       + ` AND fulltext('data.entityDescription.contributorsPreview.identity.name', '${escapeNoql(query)}', 'AND')`
-    : `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`;
+    : `type = '${NODE_TYPE_NVA_RESULT}'`;
 
   const result = conn.query({
     query: noqlQuery,
