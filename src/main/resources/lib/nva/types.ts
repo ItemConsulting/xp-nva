@@ -23,6 +23,7 @@ export interface NvaFunding {
 }
 
 export interface NvaResult {
+  [key: string]: unknown;
   id: string;
   type: string;
   otherIdentifiers?: NvaOtherIdentifiers;

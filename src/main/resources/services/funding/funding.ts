@@ -95,7 +95,7 @@ function searchFunding(query: string, count: number): XP.Response {
 
   const hits: Array<{ id: string; displayName: string; description: string }> = [];
   for (const key in seen) {
-    if (Object.hasOwn(seen, key)) {
+    if (Object.prototype.hasOwnProperty.call(seen, key)) {
       hits.push(seen[key]);
     }
   }
