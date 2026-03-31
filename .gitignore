@@ -3,7 +3,7 @@
 
 /coverage/
 /node_modules/
-/.xp-codegen/
+
 
 ### Enonic CLI ###
 .enonic

@@ -27,7 +27,7 @@ export function extractUuidFromUri(uri: string): string {
  * Get a display title for an NVA result, with fallback.
  */
 export function getResultTitle(result: NvaResult): string {
-  return result.mainTitle ?? "Untitled";
+  return result.entityDescription?.mainTitle ?? result.mainTitle ?? "Untitled";
 }
 
 /**
@@ -42,5 +42,15 @@ export function getCristinId(result: NvaResult): string | undefined {
  * Get the publication year from a result.
  */
 export function getPublicationYear(result: NvaResult): string | undefined {
-  return result.publicationDate?.year;
+  return result.entityDescription?.publicationDate?.year ?? result.publicationDate?.year;
+}
+
+/**
+ * Recursively stringify an object with sorted keys for order-independent comparison.
+ */
+export function stableStringify(obj: unknown): string {
+  if (obj === null || typeof obj !== "object") return JSON.stringify(obj);
+  if (Array.isArray(obj)) return `[${obj.map(stableStringify).join(",")}]`;
+  const sorted = Object.keys(obj as Record<string, unknown>).sort();
+  return `{${sorted.map((k) => `${JSON.stringify(k)}:${stableStringify((obj as Record<string, unknown>)[k])}`).join(",")}}`;
 }

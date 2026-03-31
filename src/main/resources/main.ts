@@ -18,7 +18,7 @@ runAsSu(() => {
       schedule: {
         type: "CRON",
         value: "0 3 * * *",
-        timeZone: "GMT+1:00",
+        timeZone: "Europe/Oslo",
       },
       user: "user:system:su",
     });

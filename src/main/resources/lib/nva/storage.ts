@@ -2,13 +2,18 @@ import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "./constants";
 import { connectToRepoAsAdmin } from "./contexts";
 import type { NvaResult, NvaResultNode } from "./types";
 
+function escapeNoql(value: string): string {
+  return value.replace(/'/g, "\\'");
+}
+
 /**
  * Look up a single NVA result by node name (UUID).
  */
 export function lookupResult(name: string): NvaResult | undefined {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
+  const escapedName = escapeNoql(name);
   const queryResult = conn.query({
-    query: `_name = '${name}' AND type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`,
+    query: `_name = '${escapedName}' AND type = '${NODE_TYPE_NVA_RESULT}'`,
     count: 1,
   });
 
@@ -20,25 +25,30 @@ export function lookupResult(name: string): NvaResult | undefined {
 
 /**
  * Look up multiple NVA results by node names (UUIDs).
+ * Uses a single batch query instead of per-name queries.
  */
 export function lookupResults(names: Array<string>): Array<NvaResult> {
   if (names.length === 0) return [];
 
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
+  const nameConditions = names.map((n) => `_name = '${escapeNoql(n)}'`).join(" OR ");
+  const queryResult = conn.query({
+    query: `(${nameConditions}) AND type = '${NODE_TYPE_NVA_RESULT}'`,
+    count: names.length,
+  });
+
+  if (queryResult.total === 0) return [];
+
+  const ids = queryResult.hits.map((hit) => hit.id);
+  const nodes = conn.get<NvaResultNode>(ids);
   const results: Array<NvaResult> = [];
 
-  for (const name of names) {
-    const queryResult = conn.query({
-      query: `_name = '${name}' AND type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`,
-      count: 1,
-    });
-
-    if (queryResult.total > 0) {
-      const node = conn.get<NvaResultNode>(queryResult.hits[0].id);
-      if (node?.data) {
-        results.push(node.data);
-      }
+  if (Array.isArray(nodes)) {
+    for (const node of nodes) {
+      if (node?.data) results.push(node.data);
     }
+  } else if (nodes?.data) {
+    results.push(nodes.data);
   }
 
   return results;
@@ -54,23 +64,16 @@ export function searchLocalResults(
 ): { total: number; results: Array<NvaResult> } {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
 
-  const escapedQuery = query.replace(/'/g, "\\'");
+  const escapedQuery = escapeNoql(query);
   const queryResult = conn.query({
-    query: `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'` +
-      (query ? ` AND fulltext('data.mainTitle', '${escapedQuery}', 'AND')` : ""),
+    query: `type = '${NODE_TYPE_NVA_RESULT}'` +
+      (query ? ` AND fulltext('data.entityDescription.mainTitle', '${escapedQuery}', 'AND')` : ""),
     start,
     count,
-    sort: "data.publicationDate.year DESC",
+    sort: "data.entityDescription.publicationDate.year DESC",
   });
 
-  const results: Array<NvaResult> = [];
-  for (const hit of queryResult.hits) {
-    const node = conn.get<NvaResultNode>(hit.id);
-    if (node?.data) {
-      results.push(node.data);
-    }
-  }
-
+  const results = batchGetResults(conn, queryResult.hits);
   return { total: queryResult.total, results };
 }
 
@@ -84,22 +87,39 @@ export function lookupResultsByContributor(
 ): { total: number; results: Array<NvaResult> } {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
 
-  const escapedUri = contributorUri.replace(/'/g, "\\'");
+  const escapedUri = escapeNoql(contributorUri);
   const queryResult = conn.query({
-    query: `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'` +
-      ` AND data.contributorsPreview.identity.id = '${escapedUri}'`,
+    query: `type = '${NODE_TYPE_NVA_RESULT}'` +
+      ` AND data.entityDescription.contributorsPreview.identity.id = '${escapedUri}'`,
     start,
     count,
-    sort: "data.publicationDate.year DESC",
+    sort: "data.entityDescription.publicationDate.year DESC",
   });
 
+  const results = batchGetResults(conn, queryResult.hits);
+  return { total: queryResult.total, results };
+}
+
+/**
+ * Batch-fetch nodes by query hits and extract their data.
+ */
+function batchGetResults(
+  conn: ReturnType<typeof connectToRepoAsAdmin>,
+  hits: Array<{ id: string }>
+): Array<NvaResult> {
+  if (hits.length === 0) return [];
+
+  const ids = hits.map((hit) => hit.id);
+  const nodes = conn.get<NvaResultNode>(ids);
   const results: Array<NvaResult> = [];
-  for (const hit of queryResult.hits) {
-    const node = conn.get<NvaResultNode>(hit.id);
-    if (node?.data) {
-      results.push(node.data);
+
+  if (Array.isArray(nodes)) {
+    for (const node of nodes) {
+      if (node?.data) results.push(node.data);
     }
+  } else if (nodes?.data) {
+    results.push(nodes.data);
   }
 
-  return { total: queryResult.total, results };
+  return results;
 }

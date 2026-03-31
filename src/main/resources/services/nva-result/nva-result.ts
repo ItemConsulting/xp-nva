@@ -1,24 +1,29 @@
 import { searchNvaResults } from "../../lib/nva/client";
-import { searchLocalResults } from "../../lib/nva/storage";
+import { lookupResult, searchLocalResults } from "../../lib/nva/storage";
 import { extractUuidFromUri, getResultTitle, getCristinId, getPublicationYear } from "../../lib/nva/utils";
 import type { NvaResult } from "../../lib/nva/types";
 
 /**
  * Custom selector service for picking NVA results in Content Studio.
  */
+function paramString(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] ?? "";
+  return value ?? "";
+}
+
 export function get(req: XP.Request): XP.Response {
-  const query = (req.params?.query ?? "").trim();
-  const start = parseInt(req.params?.start ?? "0", 10);
-  const count = parseInt(req.params?.count ?? "10", 10);
-  const ids = req.params?.ids;
+  const query = paramString(req.params?.query).trim().slice(0, 500);
+  const start = Math.max(0, parseInt(paramString(req.params?.start) || "0", 10) || 0);
+  const count = Math.min(100, Math.max(1, parseInt(paramString(req.params?.count) || "10", 10) || 10));
+  const ids = paramString(req.params?.ids);
 
   // If specific IDs are requested, look them up
   if (ids) {
     const idList = ids.split(",").map((id: string) => id.trim());
     const hits = idList.map((id: string) => {
-      const localResult = searchLocalResults(id, 0, 1);
-      if (localResult.results.length > 0) {
-        return formatHit(localResult.results[0]);
+      const result = lookupResult(id);
+      if (result) {
+        return formatHit(result);
       }
       return { id, displayName: id, description: "Not found in local cache" };
     });
@@ -26,7 +31,7 @@ export function get(req: XP.Request): XP.Response {
     return {
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ total: hits.length, count: hits.length, hits }),
+      body: { total: hits.length, count: hits.length, hits },
     };
   }
 
@@ -43,7 +48,7 @@ export function get(req: XP.Request): XP.Response {
       return {
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ total: response.totalHits, count: hits.length, hits }),
+        body: { total: response.totalHits, count: hits.length, hits },
       };
     }
   }
@@ -56,7 +61,7 @@ export function get(req: XP.Request): XP.Response {
     return {
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ total: localResult.total, count: hits.length, hits }),
+      body: { total: localResult.total, count: hits.length, hits },
     };
   }
 
@@ -73,7 +78,7 @@ export function get(req: XP.Request): XP.Response {
       return {
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ total: response.totalHits, count: hits.length, hits }),
+        body: { total: response.totalHits, count: hits.length, hits },
       };
     }
   }
@@ -82,16 +87,16 @@ export function get(req: XP.Request): XP.Response {
   return {
     status: 200,
     contentType: "application/json",
-    body: JSON.stringify({ total: 0, count: 0, hits: [] }),
+    body: { total: 0, count: 0, hits: [] },
   };
 }
 
 function formatHit(result: NvaResult) {
-  const uuid = extractUuidFromUri(result.id);
+  const uuid = result.id ? extractUuidFromUri(result.id) : "";
   const title = getResultTitle(result);
   const year = getPublicationYear(result);
   const cristinId = getCristinId(result);
-  const type = result.type ?? "";
+  const type = result.entityDescription?.reference?.publicationInstance?.type ?? result.type ?? "";
 
   const descParts: Array<string> = [];
   if (type) descParts.push(type);

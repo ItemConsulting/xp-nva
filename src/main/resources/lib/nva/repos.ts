@@ -1,27 +1,26 @@
 import { create as createRepo, get as getRepo } from "/lib/xp/repo";
+import type { AccessControlEntry } from "/lib/xp/repo";
 import { send } from "/lib/xp/event";
 import type { RepoConnection } from "/lib/xp/node";
 import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "./constants";
 import { runAsSu, connectToRepoAsAdmin } from "./contexts";
 import type { NvaResult, NvaResultNode } from "./types";
+import { stableStringify } from "./utils";
 
-const PERMISSIONS = [
+const PERMISSIONS: AccessControlEntry[] = [
   {
     principal: "role:system.everyone",
     allow: ["READ"],
-    deny: [] as Array<string>,
   },
   {
     principal: "role:system.authenticated",
-    allow: ["READ", "CREATE", "MODIFY", "DELETE"],
-    deny: [] as Array<string>,
+    allow: ["READ"],
   },
   {
     principal: "role:system.admin",
     allow: ["READ", "CREATE", "MODIFY", "DELETE", "PUBLISH", "READ_PERMISSIONS", "WRITE_PERMISSIONS"],
-    deny: [] as Array<string>,
   },
-];
+] as Array<AccessControlEntry>;
 
 /**
  * Ensures the NVA results repository exists. Returns true if it already existed.
@@ -51,18 +50,19 @@ export function getNodeName(result: NvaResult): string {
   return parts[parts.length - 1];
 }
 
-interface UpsertCounts {
+export interface UpsertCounts {
   created: number;
   modified: number;
   unchanged: number;
   errors: number;
+  importedNames: Array<string>;
 }
 
 /**
  * Import an array of NVA results into the repo using upsert logic.
  */
 export function importResults(results: Array<NvaResult>): UpsertCounts {
-  const counts: UpsertCounts = { created: 0, modified: 0, unchanged: 0, errors: 0 };
+  const counts: UpsertCounts = { created: 0, modified: 0, unchanged: 0, errors: 0, importedNames: [] };
 
   return runAsSu(() => {
     const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
@@ -70,6 +70,7 @@ export function importResults(results: Array<NvaResult>): UpsertCounts {
     for (const result of results) {
       try {
         const nodeName = getNodeName(result);
+        counts.importedNames.push(nodeName);
         const existing = getNodeByName(conn, nodeName);
 
         if (!existing) {
@@ -87,19 +88,27 @@ export function importResults(results: Array<NvaResult>): UpsertCounts {
             data: { id: result.id, name: nodeName },
           });
         } else {
-          const existingJson = JSON.stringify(existing.data);
-          const newJson = JSON.stringify(result);
+          const existingModified = existing.data?.recordMetadata?.modifiedDate;
+          const newModified = result.recordMetadata?.modifiedDate;
 
-          if (existingJson !== newJson) {
-            conn.modify({
+          const hasChanged = existingModified !== newModified
+            || stableStringify(existing.data) !== stableStringify(result);
+
+          if (hasChanged) {
+            conn.modify<NvaResultNode>({
               key: existing._id,
-              editor: (node: NvaResultNode & Record<string, unknown>) => {
+              editor: (node) => {
                 node.data = result;
-                node.removedFromNva = false;
                 return node;
               },
             });
             counts.modified++;
+
+            send({
+              type: "custom.nva.result.modify",
+              distributed: false,
+              data: { id: result.id, name: nodeName },
+            });
           } else {
             counts.unchanged++;
           }
@@ -116,11 +125,81 @@ export function importResults(results: Array<NvaResult>): UpsertCounts {
 }
 
 /**
+ * Delete nodes that weren't seen in the current import.
+ * Returns the number of nodes deleted.
+ */
+export function deleteStaleResults(importedNames: Array<string>): number {
+  return runAsSu(() => {
+    const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
+    const importedSet: Record<string, boolean> = {};
+    for (const name of importedNames) {
+      importedSet[name] = true;
+    }
+
+    // Safety check: count existing results and refuse to delete if imported set
+    // is less than 50% of existing results (likely incomplete import)
+    const activeCount = conn.query({
+      query: `type = '${NODE_TYPE_NVA_RESULT}'`,
+      count: 0,
+    }).total;
+
+    if (activeCount > 0 && importedNames.length < activeCount * 0.5) {
+      log.warning(
+        `Skipping stale deletion: imported ${importedNames.length} results but repo has ${activeCount} results. ` +
+        `This looks like an incomplete import (threshold: 50%).`
+      );
+      return 0;
+    }
+
+    let deletedCount = 0;
+    let start = 0;
+    const batchSize = 1000;
+
+    while (true) {
+      const result = conn.query({
+        query: `type = '${NODE_TYPE_NVA_RESULT}'`,
+        start,
+        count: batchSize,
+      });
+
+      if (result.hits.length === 0) break;
+
+      const ids = result.hits.map((h) => h.id);
+      const nodes = conn.get<NvaResultNode>(ids);
+      const nodeArray = Array.isArray(nodes) ? nodes : nodes ? [nodes] : [];
+
+      const toDelete: Array<string> = [];
+      for (const node of nodeArray) {
+        if (node && !importedSet[node._name]) {
+          toDelete.push(node._id);
+        }
+      }
+
+      for (const id of toDelete) {
+        conn.delete(id);
+        deletedCount++;
+      }
+
+      if (start + batchSize >= result.total) break;
+      start += batchSize;
+    }
+
+    if (deletedCount > 0) {
+      conn.refresh("ALL");
+      log.info(`Deleted ${deletedCount} stale results from NVA repo`);
+    }
+
+    return deletedCount;
+  });
+}
+
+/**
  * Look up a node by name (_name field) in the results repo.
  */
-function getNodeByName(conn: RepoConnection, name: string): (NvaResultNode & { _id: string }) | undefined {
+function getNodeByName(conn: RepoConnection, name: string) {
+  const escapedName = name.replace(/'/g, "\\'");
   const queryResult = conn.query({
-    query: `_name = '${name}'`,
+    query: `_name = '${escapedName}'`,
     count: 1,
   });
 
@@ -128,38 +207,6 @@ function getNodeByName(conn: RepoConnection, name: string): (NvaResultNode & { _
     return undefined;
   }
 
-  const node = conn.get(queryResult.hits[0].id);
-  return node ?? undefined;
+  return conn.get<NvaResultNode>(queryResult.hits[0].id) ?? undefined;
 }
 
-/**
- * Query all result node names in the repo (for refresh/update checks).
- */
-export function getAllResultNodeNames(): Array<string> {
-  return runAsSu(() => {
-    const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
-    const names: Array<string> = [];
-    let start = 0;
-    const batchSize = 1000;
-
-    while (true) {
-      const result = conn.query({
-        query: `type = '${NODE_TYPE_NVA_RESULT}' AND removedFromNva != 'true'`,
-        start,
-        count: batchSize,
-      });
-
-      for (const hit of result.hits) {
-        const node = conn.get(hit.id);
-        if (node && node._name) {
-          names.push(node._name);
-        }
-      }
-
-      if (start + batchSize >= result.total) break;
-      start += batchSize;
-    }
-
-    return names;
-  });
-}

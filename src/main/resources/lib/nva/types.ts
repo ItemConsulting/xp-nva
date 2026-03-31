@@ -17,7 +17,13 @@ export interface NvaFacet {
   labels: Record<string, string>;
 }
 
+export interface NvaFunding {
+  identifier?: string;
+  source?: string | { identifier?: string; labels?: Record<string, string> };
+}
+
 export interface NvaResult {
+  [key: string]: unknown;
   id: string;
   type: string;
   otherIdentifiers?: NvaOtherIdentifiers;
@@ -30,6 +36,18 @@ export interface NvaResult {
   contributorsPreview?: Array<NvaContributorPreview>;
   contributorsCount?: number;
   publishingDetails?: NvaPublishingDetails;
+  fundings?: Array<NvaFunding>;
+  entityDescription?: {
+    mainTitle?: string;
+    publicationDate?: NvaPublicationDate;
+    contributorsPreview?: Array<NvaContributorPreview>;
+    abstract?: string;
+    reference?: {
+      doi?: string;
+      publicationContext?: { name?: string; title?: string };
+      publicationInstance?: { type?: string };
+    };
+  };
 }
 
 export interface NvaOtherIdentifiers {
@@ -125,10 +143,4 @@ export interface NvaResultNode {
   _name: string;
   data: NvaResult;
   type: string;
-  removedFromNva?: boolean;
-}
-
-// Import task configuration
-export interface ImportTaskConfig {
-  institution: string;
 }

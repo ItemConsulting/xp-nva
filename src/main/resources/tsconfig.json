@@ -21,7 +21,6 @@
   // It is not a mechanism that prevents a file from being included in the
   // codebase - it simply changes what the include setting finds.
   "exclude": [
-    "**/*.d.ts",
     "assets/**/*.*",
     // "static/**/*.*",
   ],
@@ -31,6 +30,7 @@
     // to the baseUrl if set, or to the tsconfig file itself otherwise.
     "paths": {
       "/lib/xp/*": ["../../../node_modules/@enonic-types/lib-*"],
+      "/lib/http-client": ["./lib/http-client.d.ts"],
       "/*": ["./*"],
     },
 
