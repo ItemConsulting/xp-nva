@@ -11,8 +11,8 @@ if (!dir) {
   process.exit(1);
 }
 
-const pattern = path.join(dir, "**/*.ts");
-const excludePattern = excludeDir ? path.join(excludeDir, "**/*.ts") : null;
+const pattern = path.join(dir, "**/*.ts").replace(/\\/g, "/");
+const excludePattern = excludeDir ? path.join(excludeDir, "**/*.ts").replace(/\\/g, "/") : null;
 
 // Get all matching .ts files
 let files = globSync(pattern, { nodir: true });

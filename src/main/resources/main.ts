@@ -1,7 +1,7 @@
 import { create, modify, get, type CreateScheduledJobParams, type ScheduledJob } from "/lib/xp/scheduler";
 import { submitTask } from "/lib/xp/task";
-import { ensureRepoExists } from "./lib/nva/repos";
-import { runAsSu } from "./lib/nva/contexts";
+import { ensureRepoExists } from "/lib/nva";
+import { runAsSu } from "/lib/nva/contexts";
 
 const APP_NAME = app.name;
 const IMPORT_TASK_DESCRIPTOR = `${APP_NAME}:import-nva-results`;
@@ -18,7 +18,7 @@ runAsSu(() => {
       schedule: {
         type: "CRON",
         value: "0 3 * * *",
-        timeZone: "GMT+1:00",
+        timeZone: "Europe/Oslo",
       },
       user: "user:system:su",
     });
@@ -38,7 +38,7 @@ runAsSu(() => {
 });
 
 function upsertScheduledJob<Config extends Record<string, unknown>>(
-  params: CreateScheduledJobParams<Config>
+  params: CreateScheduledJobParams<Config>,
 ): ScheduledJob<Config> {
   const job =
     get(params) === null
@@ -59,7 +59,7 @@ function upsertScheduledJob<Config extends Record<string, unknown>>(
   log.info(
     job.enabled
       ? `Scheduled job at ${formatCronValue(job.schedule.value)} named "${job.name}"`
-      : `Disabled scheduled job "${job.name}"`
+      : `Disabled scheduled job "${job.name}"`,
   );
 
   return job;

@@ -35,7 +35,7 @@ Each node has the type `no.item.nva:result` and stores the full NVA API response
 Use the `no.item.xp.nva:nva-result` CustomSelector-service to select a publication from NVA and store its ID on your Content.
 
 ```xml
-<input name="cristinResultId" type="CustomSelector">
+<input name="nvaResultId" type="CustomSelector">
   <label>Publications from NVA</label>
   <occurrences minimum="0" maximum="0"/>
   <config>
