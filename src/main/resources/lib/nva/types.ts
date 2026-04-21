@@ -6,8 +6,8 @@ export type NvaSearchResponse = {
   nextResults?: string;
   nextSearchAfterResults?: string;
   previousResults?: string;
-  hits: Array<NvaResult>;
-  aggregations?: Record<string, Array<NvaFacet>>;
+  hits: NvaResult[];
+  aggregations?: Record<string, NvaFacet[]>;
   "@context"?: string;
 };
 
@@ -33,14 +33,14 @@ export type NvaResult = {
   description?: string;
   alternativeTitles?: Record<string, string>;
   publicationDate?: NvaPublicationDate;
-  contributorsPreview?: Array<NvaContributorPreview>;
+  contributorsPreview?: NvaContributorPreview[];
   contributorsCount?: number;
   publishingDetails?: NvaPublishingDetails;
-  fundings?: Array<NvaFunding>;
+  fundings?: NvaFunding[];
   entityDescription?: {
     mainTitle?: string;
     publicationDate?: NvaPublicationDate;
-    contributorsPreview?: Array<NvaContributorPreview>;
+    contributorsPreview?: NvaContributorPreview[];
     abstract?: string;
     reference?: {
       doi?: string;
@@ -51,11 +51,11 @@ export type NvaResult = {
 };
 
 export type NvaOtherIdentifiers = {
-  scopus?: Array<string>;
-  cristin?: Array<string>;
-  handle?: Array<string>;
-  issn?: Array<string>;
-  isbn?: Array<string>;
+  scopus?: string[];
+  cristin?: string[];
+  handle?: string[];
+  issn?: string[];
+  isbn?: string[];
 };
 
 export type NvaRecordMetadata = {
@@ -72,7 +72,7 @@ export type NvaPublicationDate = {
 };
 
 export type NvaContributorPreview = {
-  affiliations?: Array<NvaAffiliation>;
+  affiliations?: NvaAffiliation[];
   correspondingAuthor?: boolean;
   identity?: NvaIdentity;
   role?: string;

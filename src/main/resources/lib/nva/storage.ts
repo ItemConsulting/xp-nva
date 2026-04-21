@@ -27,7 +27,7 @@ export function lookupResult(name: string): NvaResult | undefined {
  * Look up multiple NVA results by node names (UUIDs).
  * Uses a single batch query instead of per-name queries.
  */
-export function lookupResults(names: Array<string>): Array<NvaResult> {
+export function lookupResults(names: string[]): NvaResult[] {
   if (names.length === 0) return [];
 
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
@@ -41,7 +41,7 @@ export function lookupResults(names: Array<string>): Array<NvaResult> {
 
   const ids = queryResult.hits.map((hit) => hit.id);
   const nodes = conn.get<NvaResultNode>(ids);
-  const results: Array<NvaResult> = [];
+  const results: NvaResult[] = [];
 
   if (Array.isArray(nodes)) {
     for (const node of nodes) {
@@ -57,7 +57,7 @@ export function lookupResults(names: Array<string>): Array<NvaResult> {
 /**
  * Search results in the local repo by a text query (matches mainTitle).
  */
-export function searchLocalResults(query: string, start = 0, count = 10): { total: number; results: Array<NvaResult> } {
+export function searchLocalResults(query: string, start = 0, count = 10): { total: number; results: NvaResult[] } {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
 
   const escapedQuery = escapeNoql(query);
@@ -81,7 +81,7 @@ export function lookupResultsByContributor(
   contributorUri: string,
   start = 0,
   count = 10,
-): { total: number; results: Array<NvaResult> } {
+): { total: number; results: NvaResult[] } {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
 
   const escapedUri = escapeNoql(contributorUri);
@@ -101,12 +101,12 @@ export function lookupResultsByContributor(
 /**
  * Batch-fetch nodes by query hits and extract their data.
  */
-function batchGetResults(conn: ReturnType<typeof connectToRepoAsAdmin>, hits: Array<{ id: string }>): Array<NvaResult> {
+function batchGetResults(conn: ReturnType<typeof connectToRepoAsAdmin>, hits: { id: string }[]): NvaResult[] {
   if (hits.length === 0) return [];
 
   const ids = hits.map((hit) => hit.id);
   const nodes = conn.get<NvaResultNode>(ids);
-  const results: Array<NvaResult> = [];
+  const results: NvaResult[] = [];
 
   if (Array.isArray(nodes)) {
     for (const node of nodes) {

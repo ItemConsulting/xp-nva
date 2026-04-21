@@ -6,6 +6,14 @@ import { stableStringify } from "./utils";
 import type { RepoConnection } from "/lib/xp/node";
 import type { NvaResult, NvaResultNode } from "./types";
 
+export type UpsertCounts = {
+  created: number;
+  modified: number;
+  unchanged: number;
+  errors: number;
+  importedNames: string[];
+};
+
 const PERMISSIONS: AccessControlEntry[] = [
   {
     principal: "role:system.everyone",
@@ -49,18 +57,10 @@ export function getNodeName(result: NvaResult): string {
   return parts[parts.length - 1];
 }
 
-export interface UpsertCounts {
-  created: number;
-  modified: number;
-  unchanged: number;
-  errors: number;
-  importedNames: Array<string>;
-}
-
 /**
  * Import an array of NVA results into the repo using upsert logic.
  */
-export function importResults(results: Array<NvaResult>): UpsertCounts {
+export function importResults(results: NvaResult[]): UpsertCounts {
   const counts: UpsertCounts = {
     created: 0,
     modified: 0,
@@ -133,7 +133,7 @@ export function importResults(results: Array<NvaResult>): UpsertCounts {
  * Delete nodes that weren't seen in the current import.
  * Returns the number of nodes deleted.
  */
-export function deleteStaleResults(importedNames: Array<string>): number {
+export function deleteStaleResults(importedNames: string[]): number {
   return runAsSu(() => {
     const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
     const importedSet: Record<string, boolean> = {};
@@ -173,7 +173,7 @@ export function deleteStaleResults(importedNames: Array<string>): number {
       const nodes = conn.get<NvaResultNode>(ids);
       const nodeArray = Array.isArray(nodes) ? nodes : nodes ? [nodes] : [];
 
-      const toDelete: Array<string> = [];
+      const toDelete: string[] = [];
       for (const node of nodeArray) {
         if (node && !importedSet[node._name]) {
           toDelete.push(node._id);

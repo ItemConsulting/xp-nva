@@ -5,7 +5,7 @@ import { connectToRepoAsAdmin } from "/lib/nva/contexts";
 import { getResource, readText } from "/lib/xp/io";
 import { render } from "/lib/freemarker";
 import type { Response } from "@enonic-types/core";
-import { FreeMarkerParams } from "/admin/tools/nva-import/nva-import.freemarker";
+import type { FreeMarkerParams } from "./nva-import.freemarker";
 
 const styles = resolve("nva-import.css");
 const view = resolve("nva-import.ftlh");

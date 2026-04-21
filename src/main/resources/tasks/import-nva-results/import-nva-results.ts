@@ -32,7 +32,7 @@ export function run() {
   let totalModified = 0;
   let totalUnchanged = 0;
   let totalErrors = 0;
-  const allImportedNames: Array<string> = [];
+  const allImportedNames: string[] = [];
   let page = 0;
   let consecutiveFailures = 0;
   let importAborted = false;
@@ -65,7 +65,7 @@ export function run() {
 
     consecutiveFailures = 0;
     isFirstPage = false;
-    const results: Array<NvaResult> = response.hits;
+    const results: NvaResult[] = response.hits;
     totalFetched += results.length;
 
     const counts = importResults(results);

@@ -106,7 +106,7 @@ function formatHit(result: NvaResult): CustomSelectorServiceResponseHit {
   const cristinId = getCristinId(result);
   const type = result.entityDescription?.reference?.publicationInstance?.type ?? result.type ?? "";
 
-  const descParts: Array<string> = [];
+  const descParts: string[] = [];
   if (type) descParts.push(type);
   if (year) descParts.push(year);
   if (cristinId) descParts.push(`Cristin: ${cristinId}`);

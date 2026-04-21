@@ -10,7 +10,7 @@ export function notNullOrUndefined<T>(val: T | null | undefined): val is T {
 /**
  * Normalize a value to an array.
  */
-export function forceArray<T>(data: T | Array<T> | undefined): Array<T> {
+export function forceArray<T>(data: T | T[] | undefined | null): T[] {
   if (data === undefined || data === null) return [];
   return Array.isArray(data) ? data : [data];
 }

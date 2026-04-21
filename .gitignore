@@ -98,3 +98,5 @@ crashlytics-build.properties
 *.css.map
 
 .eslintcache
+
+.claude
