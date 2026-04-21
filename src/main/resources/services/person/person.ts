@@ -1,13 +1,21 @@
-import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "../../lib/nva/constants";
-import { connectToRepoAsAdmin } from "../../lib/nva/contexts";
-import { forceArray } from "../../lib/nva/utils";
-import type { NvaResultNode } from "../../lib/nva/types";
+import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "/lib/nva";
+import { connectToRepoAsAdmin } from "/lib/nva/contexts";
+import { forceArray } from "/lib/nva";
+import type { NvaResultNode } from "/lib/nva";
+import type { Request, Response } from "@enonic-types/core";
+import type {
+  CustomSelectorServiceParams,
+  CustomSelectorServiceResponseBody,
+  CustomSelectorServiceResponseHit,
+} from "@item-enonic-types/global/controller";
 
 /**
  * Custom selector service for picking NVA contributors (persons) in Content Studio.
  * Returns Cristin person IDs as values, with contributor names as display names.
  */
-export function get(req: XP.Request): XP.Response {
+export function get(
+  req: Request<{ params: CustomSelectorServiceParams }>,
+): Response<{ body: CustomSelectorServiceResponseBody }> {
   const query = (req.params?.query ?? "").trim().slice(0, 500);
   const ids = req.params?.ids;
   const count = Math.min(100, Math.max(1, parseInt(req.params?.count ?? "20", 10) || 20));
@@ -19,34 +27,37 @@ export function get(req: XP.Request): XP.Response {
   return searchContributors(query, count);
 }
 
-function lookupByIds(ids: string): XP.Response {
+function lookupByIds(ids: string): Response<{ body: CustomSelectorServiceResponseBody }> {
   const idList = ids.split(",").map((id) => id.trim());
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
 
-  const hits = idList.map((cristinId) => {
+  const hits = idList.map<CustomSelectorServiceResponseHit>((cristinId) => {
     // Validate cristinId is numeric to prevent NoQL injection
     if (!/^\d+$/.test(cristinId)) {
-      return { id: cristinId, displayName: `Person ${cristinId}`, description: "Invalid Cristin ID" };
+      return {
+        id: cristinId,
+        displayName: `Person ${cristinId}`,
+        description: "Invalid Cristin ID",
+      };
     }
     const contributorUri = `https://api.nva.unit.no/cristin/person/${cristinId}`;
     const result = conn.query({
       count: 1,
       filters: {
         boolean: {
-          must: [
-            { hasValue: { field: "type", values: [NODE_TYPE_NVA_RESULT] } },
-          ],
+          must: [{ hasValue: { field: "type", values: [NODE_TYPE_NVA_RESULT] } }],
         },
       },
-      query: `data.entityDescription.contributorsPreview.identity.id = '${cristinId}'`
-        + ` OR data.entityDescription.contributorsPreview.identity.id = '${contributorUri}'`,
+      query:
+        `data.entityDescription.contributorsPreview.identity.id = '${cristinId}'` +
+        ` OR data.entityDescription.contributorsPreview.identity.id = '${contributorUri}'`,
     });
 
     if (result.total > 0) {
       const node = conn.get<NvaResultNode>(result.hits[0].id);
       if (node?.data) {
         const contributors = forceArray(node.data.entityDescription?.contributorsPreview ?? []);
-        let match: typeof contributors[0] | undefined;
+        let match: (typeof contributors)[0] | undefined;
         for (let i = 0; i < contributors.length; i++) {
           const c = contributors[i];
           if (c.identity?.id === contributorUri || extractCristinId(c.identity?.id) === cristinId) {
@@ -55,24 +66,32 @@ function lookupByIds(ids: string): XP.Response {
           }
         }
         if (match?.identity?.name) {
-          return { id: cristinId, displayName: match.identity.name, description: `Cristin ID: ${cristinId}` };
+          return {
+            id: cristinId,
+            displayName: match.identity.name,
+            description: `Cristin ID: ${cristinId}`,
+          };
         }
       }
     }
 
-    return { id: cristinId, displayName: `Person ${cristinId}`, description: "Cristin ID" };
+    return {
+      id: cristinId,
+      displayName: `Person ${cristinId}`,
+      description: "Cristin ID",
+    };
   });
 
   return jsonResponse({ total: hits.length, count: hits.length, hits });
 }
 
-function searchContributors(query: string, count: number): XP.Response {
+function searchContributors(query: string, count: number): Response<{ body: CustomSelectorServiceResponseBody }> {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
 
   // Query NVA results that have matching contributor names
   const noqlQuery = query
-    ? `type = '${NODE_TYPE_NVA_RESULT}'`
-      + ` AND fulltext('data.entityDescription.contributorsPreview.identity.name', '${escapeNoql(query)}', 'AND')`
+    ? `type = '${NODE_TYPE_NVA_RESULT}'` +
+      ` AND fulltext('data.entityDescription.contributorsPreview.identity.name', '${escapeNoql(query)}', 'AND')`
     : `type = '${NODE_TYPE_NVA_RESULT}'`;
 
   const result = conn.query({
@@ -92,7 +111,7 @@ function searchContributors(query: string, count: number): XP.Response {
   for (let h = 0; h < nodes.length; h++) {
     const node = nodes[h];
 
-    const contributors = forceArray(node.data.entityDescription?.contributorsPreview ?? []);
+    const contributors = forceArray(node?.data.entityDescription?.contributorsPreview);
     for (let i = 0; i < contributors.length; i++) {
       const c = contributors[i];
       const name = c.identity?.name;
@@ -137,7 +156,7 @@ function escapeNoql(value: string): string {
   return value.replace(/'/g, "\\'");
 }
 
-function jsonResponse(body: unknown): XP.Response {
+function jsonResponse(body: CustomSelectorServiceResponseBody): Response<{ body: CustomSelectorServiceResponseBody }> {
   return {
     status: 200,
     contentType: "application/json",

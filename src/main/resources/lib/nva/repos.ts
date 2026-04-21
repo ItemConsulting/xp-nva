@@ -1,11 +1,10 @@
-import { create as createRepo, get as getRepo } from "/lib/xp/repo";
-import type { AccessControlEntry } from "/lib/xp/repo";
+import { create as createRepo, get as getRepo, type AccessControlEntry } from "/lib/xp/repo";
 import { send } from "/lib/xp/event";
-import type { RepoConnection } from "/lib/xp/node";
 import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "./constants";
 import { runAsSu, connectToRepoAsAdmin } from "./contexts";
-import type { NvaResult, NvaResultNode } from "./types";
 import { stableStringify } from "./utils";
+import type { RepoConnection } from "/lib/xp/node";
+import type { NvaResult, NvaResultNode } from "./types";
 
 const PERMISSIONS: AccessControlEntry[] = [
   {
@@ -20,7 +19,7 @@ const PERMISSIONS: AccessControlEntry[] = [
     principal: "role:system.admin",
     allow: ["READ", "CREATE", "MODIFY", "DELETE", "PUBLISH", "READ_PERMISSIONS", "WRITE_PERMISSIONS"],
   },
-] as Array<AccessControlEntry>;
+];
 
 /**
  * Ensures the NVA results repository exists. Returns true if it already existed.
@@ -62,7 +61,13 @@ export interface UpsertCounts {
  * Import an array of NVA results into the repo using upsert logic.
  */
 export function importResults(results: Array<NvaResult>): UpsertCounts {
-  const counts: UpsertCounts = { created: 0, modified: 0, unchanged: 0, errors: 0, importedNames: [] };
+  const counts: UpsertCounts = {
+    created: 0,
+    modified: 0,
+    unchanged: 0,
+    errors: 0,
+    importedNames: [],
+  };
 
   return runAsSu(() => {
     const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
@@ -91,8 +96,8 @@ export function importResults(results: Array<NvaResult>): UpsertCounts {
           const existingModified = existing.data?.recordMetadata?.modifiedDate;
           const newModified = result.recordMetadata?.modifiedDate;
 
-          const hasChanged = existingModified !== newModified
-            || stableStringify(existing.data) !== stableStringify(result);
+          const hasChanged =
+            existingModified !== newModified || stableStringify(existing.data) !== stableStringify(result);
 
           if (hasChanged) {
             conn.modify<NvaResultNode>({
@@ -146,7 +151,7 @@ export function deleteStaleResults(importedNames: Array<string>): number {
     if (activeCount > 0 && importedNames.length < activeCount * 0.5) {
       log.warning(
         `Skipping stale deletion: imported ${importedNames.length} results but repo has ${activeCount} results. ` +
-        `This looks like an incomplete import (threshold: 50%).`
+          `This looks like an incomplete import (threshold: 50%).`,
       );
       return 0;
     }
@@ -209,4 +214,3 @@ function getNodeByName(conn: RepoConnection, name: string) {
 
   return conn.get<NvaResultNode>(queryResult.hits[0].id) ?? undefined;
 }
-

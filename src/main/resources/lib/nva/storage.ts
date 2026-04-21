@@ -57,16 +57,13 @@ export function lookupResults(names: Array<string>): Array<NvaResult> {
 /**
  * Search results in the local repo by a text query (matches mainTitle).
  */
-export function searchLocalResults(
-  query: string,
-  start = 0,
-  count = 10
-): { total: number; results: Array<NvaResult> } {
+export function searchLocalResults(query: string, start = 0, count = 10): { total: number; results: Array<NvaResult> } {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
 
   const escapedQuery = escapeNoql(query);
   const queryResult = conn.query({
-    query: `type = '${NODE_TYPE_NVA_RESULT}'` +
+    query:
+      `type = '${NODE_TYPE_NVA_RESULT}'` +
       (query ? ` AND fulltext('data.entityDescription.mainTitle', '${escapedQuery}', 'AND')` : ""),
     start,
     count,
@@ -83,13 +80,14 @@ export function searchLocalResults(
 export function lookupResultsByContributor(
   contributorUri: string,
   start = 0,
-  count = 10
+  count = 10,
 ): { total: number; results: Array<NvaResult> } {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
 
   const escapedUri = escapeNoql(contributorUri);
   const queryResult = conn.query({
-    query: `type = '${NODE_TYPE_NVA_RESULT}'` +
+    query:
+      `type = '${NODE_TYPE_NVA_RESULT}'` +
       ` AND data.entityDescription.contributorsPreview.identity.id = '${escapedUri}'`,
     start,
     count,
@@ -103,10 +101,7 @@ export function lookupResultsByContributor(
 /**
  * Batch-fetch nodes by query hits and extract their data.
  */
-function batchGetResults(
-  conn: ReturnType<typeof connectToRepoAsAdmin>,
-  hits: Array<{ id: string }>
-): Array<NvaResult> {
+function batchGetResults(conn: ReturnType<typeof connectToRepoAsAdmin>, hits: Array<{ id: string }>): Array<NvaResult> {
   if (hits.length === 0) return [];
 
   const ids = hits.map((hit) => hit.id);

@@ -35,7 +35,7 @@ export default function buildServerConfig(): Options {
 	]));
 
   return {
-    bundle: true,
+    bundle: false,
     dts: false, // d.ts files are use useless at runtime
     entry: SERVER_JS_ENTRY,
     env: {
@@ -61,7 +61,7 @@ export default function buildServerConfig(): Options {
       '/lib/util',
       '/lib/vanilla',
       '/lib/text-encoding',
-      '/lib/thymeleaf',
+      '/lib/freemarker',
       /^\/lib\/xp\//,
     ],
     format: 'cjs',
@@ -73,7 +73,7 @@ export default function buildServerConfig(): Options {
       .includes(process.env.LOG_LEVEL_FROM_GRADLE || ''),
 
     shims: false,
-    splitting: true,
+    splitting: false,
     sourcemap: false,
     target: 'es5',
     tsconfig: `${DIR_SRC}/tsconfig.json`,

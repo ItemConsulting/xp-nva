@@ -1,13 +1,21 @@
-import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "../../lib/nva/constants";
-import { connectToRepoAsAdmin } from "../../lib/nva/contexts";
-import type { NvaResultNode } from "../../lib/nva/types";
-import { forceArray } from "../../lib/nva/utils";
+import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "/lib/nva";
+import { connectToRepoAsAdmin } from "/lib/nva/contexts";
+import { forceArray } from "/lib/nva";
+import type { NvaResultNode } from "/lib/nva";
+import type {
+  CustomSelectorServiceParams,
+  CustomSelectorServiceResponseBody,
+  CustomSelectorServiceResponseHit,
+} from "@item-enonic-types/global/controller";
+import type { Request, Response } from "@enonic-types/core";
 
 /**
  * Custom selector service for picking NVA funding identifiers in Content Studio.
  * Searches the local NVA results repo for unique funding project codes.
  */
-export function get(req: XP.Request): XP.Response {
+export function get(
+  req: Request<{ params: CustomSelectorServiceParams }>,
+): Response<{ body: CustomSelectorServiceResponseBody }> {
   const query = (req.params?.query ?? "").trim().slice(0, 500);
   const ids = req.params?.ids;
   const count = Math.min(100, Math.max(1, parseInt(req.params?.count ?? "20", 10) || 20));
@@ -19,26 +27,32 @@ export function get(req: XP.Request): XP.Response {
   return searchFunding(query, count);
 }
 
-function lookupByIds(ids: string): XP.Response {
+function lookupByIds(ids: string): Response<{ body: CustomSelectorServiceResponseBody }> {
   const idList = ids.split(",").map((id) => id.trim());
-  const hits = idList.map((id) => ({
+  const hits = idList.map<CustomSelectorServiceResponseHit>((id) => ({
     id,
     displayName: id,
     description: "Funding identifier",
   }));
 
-  return jsonResponse({ total: hits.length, count: hits.length, hits });
+  return {
+    status: 200,
+    contentType: "application/json",
+    body: {
+      total: hits.length,
+      count: hits.length,
+      hits,
+    },
+  };
 }
 
-function searchFunding(query: string, count: number): XP.Response {
+function searchFunding(query: string, count: number): Response<{ body: CustomSelectorServiceResponseBody }> {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
 
   // Query results that have funding data
   const noqlQuery = query
-    ? `type = '${NODE_TYPE_NVA_RESULT}'`
-      + ` AND data.fundings.identifier LIKE '*${escapeNoql(query)}*'`
-    : `type = '${NODE_TYPE_NVA_RESULT}'`
-      + ` AND data.fundings.identifier LIKE '*'`;
+    ? `type = '${NODE_TYPE_NVA_RESULT}'` + ` AND data.fundings.identifier LIKE '*${escapeNoql(query)}*'`
+    : `type = '${NODE_TYPE_NVA_RESULT}'` + ` AND data.fundings.identifier LIKE '*'`;
 
   const result = conn.query({
     query: noqlQuery,
@@ -57,7 +71,8 @@ function searchFunding(query: string, count: number): XP.Response {
   for (let h = 0; h < nodes.length; h++) {
     const node = nodes[h];
 
-    const fundings = forceArray((node.data as Record<string, unknown>).fundings as Array<{ identifier?: string; source?: string }> ?? []);
+    const fundings = forceArray(node?.data.fundings);
+
     for (let i = 0; i < fundings.length; i++) {
       const f = fundings[i];
       const identifier = f.identifier;
@@ -93,23 +108,23 @@ function searchFunding(query: string, count: number): XP.Response {
     if (seenCount >= count) break;
   }
 
-  const hits: Array<{ id: string; displayName: string; description: string }> = [];
+  const hits: CustomSelectorServiceResponseHit[] = [];
   for (const key in seen) {
     if (Object.prototype.hasOwnProperty.call(seen, key)) {
       hits.push(seen[key]);
     }
   }
-  return jsonResponse({ total: hits.length, count: hits.length, hits });
+  return {
+    status: 200,
+    contentType: "application/json",
+    body: {
+      total: hits.length,
+      count: hits.length,
+      hits,
+    },
+  };
 }
 
 function escapeNoql(value: string): string {
   return value.replace(/'/g, "\\'");
-}
-
-function jsonResponse(body: unknown): XP.Response {
-  return {
-    status: 200,
-    contentType: "application/json",
-    body,
-  };
 }

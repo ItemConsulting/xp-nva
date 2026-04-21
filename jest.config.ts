@@ -1,20 +1,16 @@
-import type { Config } from '@jest/types';
+import type { Config } from "@jest/types";
 
-
-const DIR_SRC = 'src/main/resources';
-const DIR_SRC_JEST = 'src/jest';
+const DIR_SRC = "src/main/resources";
+const DIR_SRC_JEST = "src/jest";
 const DIR_SRC_JEST_CLIENT = `${DIR_SRC_JEST}/client`;
 const DIR_SRC_JEST_SERVER = `${DIR_SRC_JEST}/server`;
-const AND_BELOW = '**';
+const AND_BELOW = "**";
 const SOURCE_FILES = `*.{ts,tsx}`;
 const TEST_EXT = `{spec,test}.{ts,tsx}`;
 const TEST_FILES = `*.${TEST_EXT}`;
 
-
 const commonConfig: Config.InitialProjectOptions = {
-  collectCoverageFrom: [
-    `${DIR_SRC}/${AND_BELOW}/${SOURCE_FILES}`,
-  ],
+  collectCoverageFrom: [`${DIR_SRC}/${AND_BELOW}/${SOURCE_FILES}`],
 
   // Insert Jest's globals (expect, test, describe, beforeEach etc.) into the
   // global environment. If you set this to false, you should import from @jest/globals, e.g.
@@ -24,8 +20,8 @@ const commonConfig: Config.InitialProjectOptions = {
 const clientSideConfig: Config.InitialProjectOptions = {
   ...commonConfig,
   displayName: {
-    color: 'white',
-    name: 'CLIENT',
+    color: "white",
+    name: "CLIENT",
   },
 
   // A map from regular expressions to module names or to arrays of module
@@ -36,11 +32,11 @@ const clientSideConfig: Config.InitialProjectOptions = {
   // Additionally, you can substitute captured regex groups using numbered
   // backreferences.
   moduleNameMapper: {
-    '/assets/(.*)': `<rootDir>/${DIR_SRC}/assets/$1`,
+    "/assets/(.*)": `<rootDir>/${DIR_SRC}/assets/$1`,
   },
 
   // Run clientside tests with DOM globals such as document and window
-  testEnvironment: 'jsdom',
+  testEnvironment: "jsdom",
 
   // The glob patterns Jest uses to detect test files. By default it looks for
   // .js, .jsx, .ts and .tsx files inside of __tests__ folders, as well as any
@@ -50,24 +46,22 @@ const clientSideConfig: Config.InitialProjectOptions = {
   //   "**/__tests__/**/*.[jt]s?(x)",
   //   "**/?(*.)+(spec|test).[jt]s?(x)"
   // ])
-  testMatch: [
-    `<rootDir>/${DIR_SRC_JEST_CLIENT}/${AND_BELOW}/${TEST_FILES}`,
-  ],
+  testMatch: [`<rootDir>/${DIR_SRC_JEST_CLIENT}/${AND_BELOW}/${TEST_FILES}`],
   transform: {
     "^.+\\.(ts|js)x?$": [
-      'ts-jest',
+      "ts-jest",
       {
-        tsconfig: `${DIR_SRC_JEST_CLIENT}/tsconfig.json`
-      }
-    ]
-  }
+        tsconfig: `${DIR_SRC_JEST_CLIENT}/tsconfig.json`,
+      },
+    ],
+  },
 };
 
 const serverSideConfig: Config.InitialProjectOptions = {
   ...commonConfig,
   displayName: {
-    color: 'blue',
-    name: 'SERVER',
+    color: "blue",
+    name: "SERVER",
   },
 
   // A set of global variables that need to be available in all test
@@ -79,9 +73,9 @@ const serverSideConfig: Config.InitialProjectOptions = {
   // used to specify global functions. For that, you should use setupFiles.
   globals: {
     app: {
-      name: 'com.example.myproject',
+      name: "com.example.myproject",
       config: {},
-      version: '1.0.0'
+      version: "1.0.0",
     },
   },
 
@@ -93,7 +87,7 @@ const serverSideConfig: Config.InitialProjectOptions = {
   // Additionally, you can substitute captured regex groups using numbered
   // backreferences.
   moduleNameMapper: {
-    '/lib/myproject/(.*)': `<rootDir>/${DIR_SRC}/lib/myproject/$1`,
+    "/lib/myproject/(.*)": `<rootDir>/${DIR_SRC}/lib/myproject/$1`,
   },
 
   // A list of paths to modules that run some code to configure or set up the
@@ -101,12 +95,10 @@ const serverSideConfig: Config.InitialProjectOptions = {
   // every test runs in its own environment, these scripts will be executed in
   // the testing environment before executing setupFilesAfterEnv and before
   // the test code itself.
-  setupFiles: [
-    `<rootDir>/${DIR_SRC_JEST_SERVER}/setupFile.ts`
-  ],
+  setupFiles: [`<rootDir>/${DIR_SRC_JEST_SERVER}/setupFile.ts`],
 
   // Run serverside tests without DOM globals such as document and window
-  testEnvironment: 'node',
+  testEnvironment: "node",
 
   // The glob patterns Jest uses to detect test files. By default it looks for
   // .js, .jsx, .ts and .tsx files inside of __tests__ folders, as well as any
@@ -116,22 +108,20 @@ const serverSideConfig: Config.InitialProjectOptions = {
   //   "**/__tests__/**/*.[jt]s?(x)",
   //   "**/?(*.)+(spec|test).[jt]s?(x)"
   // ])
-  testMatch: [
-    `<rootDir>/${DIR_SRC_JEST_SERVER}/${AND_BELOW}/${TEST_FILES}`,
-  ],
+  testMatch: [`<rootDir>/${DIR_SRC_JEST_SERVER}/${AND_BELOW}/${TEST_FILES}`],
 
   transform: {
     "^.+\\.(ts|js)x?$": [
-      'ts-jest',
+      "ts-jest",
       {
-          tsconfig: `${DIR_SRC_JEST_SERVER}/tsconfig.json`
-      }
-    ]
+        tsconfig: `${DIR_SRC_JEST_SERVER}/tsconfig.json`,
+      },
+    ],
   },
 };
 
 const customJestConfig: Config.InitialOptions = {
-  coverageProvider: 'v8', // To get correct line numbers under jsdom
+  coverageProvider: "v8", // To get correct line numbers under jsdom
   passWithNoTests: true,
   projects: [clientSideConfig, serverSideConfig],
 };

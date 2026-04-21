@@ -1,6 +1,6 @@
 // NVA Search API response types based on the OpenAPI spec
 
-export interface NvaSearchResponse {
+export type NvaSearchResponse = {
   id: string;
   totalHits: number;
   nextResults?: string;
@@ -9,20 +9,20 @@ export interface NvaSearchResponse {
   hits: Array<NvaResult>;
   aggregations?: Record<string, Array<NvaFacet>>;
   "@context"?: string;
-}
+};
 
-export interface NvaFacet {
+export type NvaFacet = {
   key: string;
   count: number;
   labels: Record<string, string>;
-}
+};
 
-export interface NvaFunding {
+export type NvaFunding = {
   identifier?: string;
   source?: string | { identifier?: string; labels?: Record<string, string> };
-}
+};
 
-export interface NvaResult {
+export type NvaResult = {
   [key: string]: unknown;
   id: string;
   type: string;
@@ -48,70 +48,70 @@ export interface NvaResult {
       publicationInstance?: { type?: string };
     };
   };
-}
+};
 
-export interface NvaOtherIdentifiers {
+export type NvaOtherIdentifiers = {
   scopus?: Array<string>;
   cristin?: Array<string>;
   handle?: Array<string>;
   issn?: Array<string>;
   isbn?: Array<string>;
-}
+};
 
-export interface NvaRecordMetadata {
+export type NvaRecordMetadata = {
   status?: string;
   createdDate?: string;
   modifiedDate?: string;
   publishedDate?: string;
-}
+};
 
-export interface NvaPublicationDate {
+export type NvaPublicationDate = {
   year?: string;
   month?: string;
   day?: string;
-}
+};
 
-export interface NvaContributorPreview {
+export type NvaContributorPreview = {
   affiliations?: Array<NvaAffiliation>;
   correspondingAuthor?: boolean;
   identity?: NvaIdentity;
   role?: string;
   sequence?: number;
-}
+};
 
-export interface NvaAffiliation {
+export type NvaAffiliation = {
   id?: string;
   type?: string;
-}
+};
 
-export interface NvaIdentity {
+export type NvaIdentity = {
   id?: string;
   name?: string;
-}
+};
 
-export interface NvaPublishingDetails {
+export type NvaPublishingDetails = {
   id?: string;
   type?: string;
   series?: NvaPublishingSeries;
   publisher?: NvaPublisher;
   name?: string;
   doi?: string;
-}
+};
 
-export interface NvaPublishingSeries {
+export type NvaPublishingSeries = {
   id?: string;
   name?: string;
   scientificValue?: string;
-}
+};
 
-export interface NvaPublisher {
+export type NvaPublisher = {
   id?: string;
   name?: string;
   scientificValue?: string;
-}
+};
 
 // Search parameters for the NVA /search/resources endpoint
-export interface NvaSearchParams {
+export type NvaSearchParams = {
   query?: string;
   title?: string;
   institution?: string;
@@ -136,11 +136,11 @@ export interface NvaSearchParams {
   order?: "asc" | "desc";
   page?: number;
   size?: number;
-}
+};
 
 // Node structure stored in the XP repo
-export interface NvaResultNode {
+export type NvaResultNode = {
   _name: string;
   data: NvaResult;
   type: string;
-}
+};

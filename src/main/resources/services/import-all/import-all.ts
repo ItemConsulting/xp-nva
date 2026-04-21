@@ -1,5 +1,5 @@
 import { submitTask, list as listTasks } from "/lib/xp/task";
-import { ensureRepoExists } from "../../lib/nva/repos";
+import { ensureRepoExists } from "/lib/nva";
 
 const IMPORT_TASK_NAME = `${app.name}:import-nva-results`;
 

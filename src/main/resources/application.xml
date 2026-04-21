@@ -1,3 +1,4 @@
-<application>
+<?xml version="1.0" encoding="UTF-8"?>
+<application xmlns="urn:enonic:xp:model:1.0">
   <description>NVA (Nasjonalt vitenarkiv) integration for Enonic XP. Imports and caches research publications from the NVA API.</description>
 </application>

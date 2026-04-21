@@ -1,7 +1,13 @@
-import { searchNvaResults } from "../../lib/nva/client";
-import { lookupResult, searchLocalResults } from "../../lib/nva/storage";
-import { extractUuidFromUri, getResultTitle, getCristinId, getPublicationYear } from "../../lib/nva/utils";
-import type { NvaResult } from "../../lib/nva/types";
+import { searchNvaResults } from "/lib/nva";
+import { lookupResult, searchLocalResults } from "/lib/nva";
+import { extractUuidFromUri, getResultTitle, getCristinId, getPublicationYear } from "/lib/nva";
+import type { NvaResult } from "/lib/nva";
+import type { Request, Response } from "@enonic-types/core";
+import type {
+  CustomSelectorServiceParams,
+  CustomSelectorServiceResponseBody,
+  CustomSelectorServiceResponseHit,
+} from "@item-enonic-types/global/controller";
 
 /**
  * Custom selector service for picking NVA results in Content Studio.
@@ -11,7 +17,9 @@ function paramString(value: string | string[] | undefined): string {
   return value ?? "";
 }
 
-export function get(req: XP.Request): XP.Response {
+export function get(
+  req: Request<{ params: CustomSelectorServiceParams }>,
+): Response<{ body: CustomSelectorServiceResponseBody }> {
   const query = paramString(req.params?.query).trim().slice(0, 500);
   const start = Math.max(0, parseInt(paramString(req.params?.start) || "0", 10) || 0);
   const count = Math.min(100, Math.max(1, parseInt(paramString(req.params?.count) || "10", 10) || 10));
@@ -91,7 +99,7 @@ export function get(req: XP.Request): XP.Response {
   };
 }
 
-function formatHit(result: NvaResult) {
+function formatHit(result: NvaResult): CustomSelectorServiceResponseHit {
   const uuid = result.id ? extractUuidFromUri(result.id) : "";
   const title = getResultTitle(result);
   const year = getPublicationYear(result);

@@ -1,8 +1,8 @@
 import { progress, list as listTasks } from "/lib/xp/task";
-import { searchNvaResults, fetchNvaSearchUrl } from "../../lib/nva/client";
-import { importResults, deleteStaleResults } from "../../lib/nva/repos";
+import { searchNvaResults, fetchNvaSearchUrl } from "/lib/nva";
+import { importResults, deleteStaleResults } from "/lib/nva";
 import { DEFAULT_PAGE_SIZE, MAX_PAGES, NVA_BASE_URL } from "../../lib/nva/constants";
-import type { NvaSearchResponse, NvaResult } from "../../lib/nva/types";
+import type { NvaSearchResponse, NvaResult } from "/lib/nva";
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 5000;
@@ -44,7 +44,7 @@ export function run() {
   let isFirstPage = true;
 
   while (page < MAX_PAGES) {
-    const response = isFirstPage
+    const response: NvaSearchResponse | undefined = isFirstPage
       ? fetchFirstPage(institution)
       : fetchWithRetry(nextCursorUrl!, page);
 
@@ -75,10 +75,7 @@ export function run() {
     totalErrors += counts.errors;
     allImportedNames.push(...counts.importedNames);
 
-    const estimatedTotal = Math.min(
-      Math.ceil(response.totalHits / DEFAULT_PAGE_SIZE),
-      MAX_PAGES
-    );
+    const estimatedTotal = Math.min(Math.ceil(response.totalHits / DEFAULT_PAGE_SIZE), MAX_PAGES);
 
     progress({
       info: `Imported page ${page + 1}/${estimatedTotal} (${totalFetched} results)`,
@@ -89,11 +86,11 @@ export function run() {
     log.info(
       `NVA import page ${page + 1}: fetched=${results.length}, ` +
         `created=${counts.created}, modified=${counts.modified}, ` +
-        `unchanged=${counts.unchanged}, errors=${counts.errors}`
+        `unchanged=${counts.unchanged}, errors=${counts.errors}`,
     );
 
     // Use cursor-based pagination to avoid duplicates and missed results
-    const candidateUrl = response.nextSearchAfterResults ?? undefined;
+    const candidateUrl: string | undefined = response.nextSearchAfterResults;
     nextCursorUrl = candidateUrl && candidateUrl.indexOf(NVA_BASE_URL) === 0 ? candidateUrl : undefined;
     if (!nextCursorUrl || results.length < DEFAULT_PAGE_SIZE) {
       break;
@@ -105,7 +102,11 @@ export function run() {
   // Delete stale results that were not seen in this import (only if import completed fully)
   let totalStale = 0;
   if (allImportedNames.length > 0 && !importAborted) {
-    progress({ info: "Deleting stale results...", current: page + 1, total: page + 2 });
+    progress({
+      info: "Deleting stale results...",
+      current: page + 1,
+      total: page + 2,
+    });
     totalStale = deleteStaleResults(allImportedNames);
   } else if (importAborted) {
     log.warning("Skipping stale deletion because the import was aborted — partial imports may produce false positives");
@@ -121,7 +122,7 @@ export function run() {
     `NVA import complete: total fetched=${totalFetched}, ` +
       `created=${totalCreated}, modified=${totalModified}, ` +
       `unchanged=${totalUnchanged}, errors=${totalErrors}, ` +
-      `stale=${totalStale}`
+      `stale=${totalStale}`,
   );
 }
 
@@ -131,7 +132,7 @@ function fetchFirstPage(institution: string): NvaSearchResponse | undefined {
       institution,
       size: DEFAULT_PAGE_SIZE,
       sort: "identifier",
-    })
+    }),
   );
 }
 
@@ -142,7 +143,7 @@ function fetchWithRetry(url: string, page: number): NvaSearchResponse | undefine
 function fetchWithRetryFn(
   page: number,
   fetchFn: () => NvaSearchResponse | undefined,
-  retries = 0
+  retries = 0,
 ): NvaSearchResponse | undefined {
   const response = fetchFn();
 

@@ -12,10 +12,11 @@ app {
 }
 
 dependencies {
-
   // ── XP Core Libraries ──────────────────────────────────────────────────
+  include "com.enonic.xp:core-api:${xpVersion}"
   include "com.enonic.xp:lib-context:${xpVersion}"
   include "com.enonic.xp:lib-event:${xpVersion}"
+  include "com.enonic.xp:lib-io:${xpVersion}"
   include "com.enonic.xp:lib-node:${xpVersion}"
   include "com.enonic.xp:lib-portal:${xpVersion}"
   include "com.enonic.xp:lib-repo:${xpVersion}"
@@ -25,6 +26,9 @@ dependencies {
 
   // ── Enonic Market Libraries ────────────────────────────────────────────
   include 'com.enonic.lib:lib-http-client:3.2.2'
+
+  // ── Item Libraries ────────────────────────────────────────────
+  include "no.item:lib-xp-freemarker:3.0.0"
 }
 
 repositories {

@@ -1,11 +1,18 @@
-import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "../../lib/nva/constants";
-import { connectToRepoAsAdmin } from "../../lib/nva/contexts";
+import type { Request, Response } from "@enonic-types/core";
+import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "/lib/nva";
+import { connectToRepoAsAdmin } from "/lib/nva/contexts";
+import type {
+  CustomSelectorServiceParams,
+  CustomSelectorServiceResponseBody,
+} from "@item-enonic-types/global/controller";
 
 /**
  * Custom selector service for picking NVA result categories (publication instance types)
  * in Content Studio. Returns unique category types like "AcademicArticle", "AcademicMonograph", etc.
  */
-export function get(req: XP.Request): XP.Response {
+export function get(
+  req: Request<{ params: CustomSelectorServiceParams }>,
+): Response<{ body: CustomSelectorServiceResponseBody }> {
   const query = (req.params?.query ?? "").trim().toLowerCase();
   const ids = req.params?.ids;
 
@@ -22,7 +29,7 @@ export function get(req: XP.Request): XP.Response {
   return listCategories(query);
 }
 
-function listCategories(query: string): XP.Response {
+function listCategories(query: string): Response<{ body: CustomSelectorServiceResponseBody }> {
   const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
 
   // Fetch a batch of results to extract unique categories
@@ -47,8 +54,8 @@ function listCategories(query: string): XP.Response {
   }));
 
   if (query) {
-    hits = hits.filter((h) =>
-      h.displayName.toLowerCase().indexOf(query) !== -1 || h.id.toLowerCase().indexOf(query) !== -1
+    hits = hits.filter(
+      (h) => h.displayName.toLowerCase().indexOf(query) !== -1 || h.id.toLowerCase().indexOf(query) !== -1,
     );
   }
 
@@ -81,7 +88,7 @@ function humanizeCategory(type: string): string {
   return type.replace(/([A-Z])/g, " $1").trim();
 }
 
-function jsonResponse(body: unknown): XP.Response {
+function jsonResponse(body: CustomSelectorServiceResponseBody): Response<{ body: CustomSelectorServiceResponseBody }> {
   return {
     status: 200,
     contentType: "application/json",
