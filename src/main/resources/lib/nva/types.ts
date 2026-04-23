@@ -187,3 +187,38 @@ export type NVAPersonSearch = {
   previousResults: string | null;
   hits: NVAPerson[];
 };
+
+export type NVAOrganization = {
+  "@context": "https://bibsysdev.github.io/src/organization-context.json";
+  type: "Organization";
+  id: string;
+  labels: Record<"nb" | "en" | "nn", string | undefined>;
+  acronym: string;
+  country: string;
+  partOf: NVAOrganization[];
+  hasPart: NVAOrganization[];
+};
+
+export type NVAFundingSourceResponse = {
+  type: "FundingSources";
+  "@context": string;
+  id: string;
+  sources: NVAFundingSource[];
+};
+
+export type NVAFundingSource = {
+  type: "FundingSource";
+  id: string;
+  identifier: string;
+  labels: Record<"nb" | "en" | "nn", string | undefined>;
+  name: Record<"nb" | "en" | "nn", string | undefined>;
+  "@context": {
+    "@vocab": "https://nva.sikt.no/ontology/publication#";
+    id: "@id";
+    type: "@type";
+    labels: {
+      "@id": "label";
+      "@container": "@language";
+    };
+  };
+};

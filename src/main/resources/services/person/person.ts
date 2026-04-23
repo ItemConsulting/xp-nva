@@ -8,7 +8,7 @@ import type {
   CustomSelectorServiceResponseBody,
   CustomSelectorServiceResponseHit,
 } from "@item-enonic-types/global/controller";
-import { NVAPerson } from "/lib/nva/types";
+import type { NVAPerson } from "/lib/nva/types";
 
 /**
  * Custom selector service for picking NVA contributors (persons) in Content Studio.
