@@ -1,6 +1,14 @@
 import { request as httpRequest } from "/lib/http-client";
 import { NVA_SEARCH_URL, DEFAULT_PAGE_SIZE, HTTP_TIMEOUT } from "./constants";
-import type { NVAPerson, NVAPersonSearch, NvaSearchParams, NvaSearchResponse } from "./types";
+import {
+  NVAFundingSource,
+  NVAFundingSourceResponse,
+  NVAOrganization,
+  NVAPerson,
+  NVAPersonSearch,
+  NvaSearchParams,
+  NvaSearchResponse,
+} from "./types";
 
 const SEARCH_PARAM_KEYS = [
   "query",
@@ -177,13 +185,51 @@ export function getOrganization(identifier: string, depth?: "none"): NVAOrganiza
   return undefined;
 }
 
-export type NVAOrganization = {
-  "@context": "https://bibsysdev.github.io/src/organization-context.json";
-  type: "Organization";
-  id: string;
-  labels: Record<"nb" | "en" | "nn", string | undefined>;
-  acronym: string;
-  country: string;
-  partOf: NVAOrganization[];
-  hasPart: NVAOrganization[];
-};
+export function listFundingSources(): NVAFundingSource[] {
+  try {
+    const res = httpRequest({
+      url: `https://api.nva.unit.no/cristin/funding-sources`,
+      method: "GET",
+      connectionTimeout: HTTP_TIMEOUT,
+      readTimeout: HTTP_TIMEOUT,
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (res.status === 200 && res.body) {
+      const sourceResponse = JSON.parse(res.body) as NVAFundingSourceResponse;
+      return sourceResponse.sources;
+    }
+
+    log.warning(`NVA search returned status ${res.status}: ${res.message ?? ""}`);
+  } catch (e) {
+    log.error(`NVA search request failed: ${e}`);
+  }
+
+  return [];
+}
+
+export function getFundingSource(identifier: string): NVAFundingSource | undefined {
+  try {
+    const res = httpRequest({
+      url: `https://api.nva.unit.no/cristin/funding-sources/${identifier}`,
+      method: "GET",
+      connectionTimeout: HTTP_TIMEOUT,
+      readTimeout: HTTP_TIMEOUT,
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (res.status === 200 && res.body) {
+      return JSON.parse(res.body) as NVAFundingSource;
+    }
+
+    log.warning(`NVA funding source returned status ${res.status}: ${res.message ?? ""}`);
+  } catch (e) {
+    log.error(`NVA search request failed: ${e}`);
+  }
+
+  return undefined;
+}
