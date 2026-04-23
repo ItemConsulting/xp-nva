@@ -144,3 +144,46 @@ export type NvaResultNode = {
   data: NvaResult;
   type: string;
 };
+
+export type NVAPerson = {
+  "@context": "https://bibsysdev.github.io/src/person-context.json";
+  id: string;
+  type: "Person";
+  identifiers: [
+    {
+      type: string;
+      value: string;
+    },
+  ];
+  names: {
+    type: "PreferredFirstName" | "LastName" | "FirstName" | "PreferredLastName";
+    value: string;
+  }[];
+  affiliations: NVAAffiliation[];
+  verified: boolean;
+};
+
+export type NVAAffiliation = {
+  type: "Affiliation";
+  organization: string;
+  active: boolean;
+  role: {
+    type: "Role";
+    labels: {
+      en: string;
+      nb: string;
+    };
+  };
+};
+
+export type NVAPersonSearch = {
+  "@context": "https://example.org/person-search-context.json";
+  id: string;
+  size: number;
+  searchString: string;
+  processingTime: number;
+  firstRecord: number;
+  nextResults: string | null;
+  previousResults: string | null;
+  hits: NVAPerson[];
+};

@@ -7,7 +7,7 @@ export function get() {
   if (!app.config.institution) {
     return {
       status: 400,
-      body: 'Missing app config "institution" in no.item.xp.nva.cfg',
+      body: 'Missing app config "institution" in no.item.nva.cfg',
       contentType: "text/plain",
     };
   }

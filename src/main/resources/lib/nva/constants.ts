@@ -10,3 +10,5 @@ export const DEFAULT_PAGE_SIZE = 100;
 export const MAX_PAGES = 100;
 
 export const HTTP_TIMEOUT = 30000;
+
+export const IMPORT_TASK_NAME = `${app.name}:import-nva-results`;

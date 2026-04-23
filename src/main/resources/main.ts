@@ -2,9 +2,7 @@ import { create, modify, get, type CreateScheduledJobParams, type ScheduledJob }
 import { submitTask } from "/lib/xp/task";
 import { ensureRepoExists } from "/lib/nva";
 import { runAsSu } from "/lib/nva/contexts";
-
-const APP_NAME = app.name;
-const IMPORT_TASK_DESCRIPTOR = `${APP_NAME}:import-nva-results`;
+import { IMPORT_TASK_NAME } from "/lib/nva/constants";
 
 // Initialize on app start
 runAsSu(() => {
@@ -14,7 +12,7 @@ runAsSu(() => {
       enabled: true,
       config: {},
       description: "Nightly import of NVA results for configured institution",
-      descriptor: IMPORT_TASK_DESCRIPTOR,
+      descriptor: IMPORT_TASK_NAME,
       schedule: {
         type: "CRON",
         value: "0 3 * * *",
@@ -28,7 +26,7 @@ runAsSu(() => {
     if (!repoExisted) {
       log.info("NVA results repo is new — triggering immediate import");
       submitTask({
-        descriptor: IMPORT_TASK_DESCRIPTOR,
+        descriptor: IMPORT_TASK_NAME,
         config: {},
       });
     }

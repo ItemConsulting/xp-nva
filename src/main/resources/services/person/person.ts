@@ -1,13 +1,14 @@
-import { REPO_NVA_RESULTS, NODE_TYPE_NVA_RESULT } from "/lib/nva";
-import { connectToRepoAsAdmin } from "/lib/nva/contexts";
-import { forceArray } from "/lib/nva";
-import type { NvaResultNode } from "/lib/nva";
+import { notNullOrUndefined } from "/lib/nva";
+import { getPerson, searchPerson } from "/lib/nva/client";
+import { find } from "/lib/nva/utils";
+import { getOrganizationIdByAffiliation, getOrganizationName } from "/lib/nva/organizations";
 import type { Request, Response } from "@enonic-types/core";
 import type {
   CustomSelectorServiceParams,
   CustomSelectorServiceResponseBody,
   CustomSelectorServiceResponseHit,
 } from "@item-enonic-types/global/controller";
+import { NVAPerson } from "/lib/nva/types";
 
 /**
  * Custom selector service for picking NVA contributors (persons) in Content Studio.
@@ -16,150 +17,83 @@ import type {
 export function get(
   req: Request<{ params: CustomSelectorServiceParams }>,
 ): Response<{ body: CustomSelectorServiceResponseBody }> {
-  const query = (req.params?.query ?? "").trim().slice(0, 500);
-  const ids = req.params?.ids;
-  const count = Math.min(100, Math.max(1, parseInt(req.params?.count ?? "20", 10) || 20));
+  const query = (req.params?.query ?? "").trim();
+
+  // If the query is a number, then use it as ID
+  const ids = req.params.ids ?? (/^\d+$/.test(query) ? query : undefined);
 
   if (ids) {
-    return lookupByIds(ids);
-  }
-
-  return searchContributors(query, count);
-}
-
-function lookupByIds(ids: string): Response<{ body: CustomSelectorServiceResponseBody }> {
-  const idList = ids.split(",").map((id) => id.trim());
-  const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
-
-  const hits = idList.map<CustomSelectorServiceResponseHit>((cristinId) => {
-    // Validate cristinId is numeric to prevent NoQL injection
-    if (!/^\d+$/.test(cristinId)) {
-      return {
-        id: cristinId,
-        displayName: `Person ${cristinId}`,
-        description: "Invalid Cristin ID",
-      };
-    }
-    const contributorUri = `https://api.nva.unit.no/cristin/person/${cristinId}`;
-    const result = conn.query({
-      count: 1,
-      filters: {
-        boolean: {
-          must: [{ hasValue: { field: "type", values: [NODE_TYPE_NVA_RESULT] } }],
-        },
-      },
-      query:
-        `data.entityDescription.contributorsPreview.identity.id = '${cristinId}'` +
-        ` OR data.entityDescription.contributorsPreview.identity.id = '${contributorUri}'`,
-    });
-
-    if (result.total > 0) {
-      const node = conn.get<NvaResultNode>(result.hits[0].id);
-      if (node?.data) {
-        const contributors = forceArray(node.data.entityDescription?.contributorsPreview ?? []);
-        let match: (typeof contributors)[0] | undefined;
-        for (let i = 0; i < contributors.length; i++) {
-          const c = contributors[i];
-          if (c.identity?.id === contributorUri || extractCristinId(c.identity?.id) === cristinId) {
-            match = c;
-            break;
-          }
-        }
-        if (match?.identity?.name) {
-          return {
-            id: cristinId,
-            displayName: match.identity.name,
-            description: `Cristin ID: ${cristinId}`,
-          };
-        }
-      }
-    }
+    const hits = ids.split(",").map(getPerson).filter(notNullOrUndefined).map(nvaPersonToHit);
 
     return {
-      id: cristinId,
-      displayName: `Person ${cristinId}`,
-      description: "Cristin ID",
+      status: 200,
+      contentType: "application/json",
+      body: {
+        count: hits.length,
+        total: hits.length,
+        hits,
+      },
     };
-  });
-
-  return jsonResponse({ total: hits.length, count: hits.length, hits });
-}
-
-function searchContributors(query: string, count: number): Response<{ body: CustomSelectorServiceResponseBody }> {
-  const conn = connectToRepoAsAdmin(REPO_NVA_RESULTS);
-
-  // Query NVA results that have matching contributor names
-  const noqlQuery = query
-    ? `type = '${NODE_TYPE_NVA_RESULT}'` +
-      ` AND fulltext('data.entityDescription.contributorsPreview.identity.name', '${escapeNoql(query)}', 'AND')`
-    : `type = '${NODE_TYPE_NVA_RESULT}'`;
-
-  const result = conn.query({
-    query: noqlQuery,
-    count: 100, // Fetch more to extract unique contributors
-    sort: "data.entityDescription.publicationDate.year DESC",
-  });
-
-  // Batch-fetch all matching nodes
-  const hitIds = result.hits.map((h) => h.id);
-  const nodes = hitIds.length > 0 ? forceArray(conn.get<NvaResultNode>(hitIds)).filter((n) => n?.data) : [];
-
-  // Collect unique contributors across all matching results
-  const seen: Record<string, { id: string; displayName: string; description: string }> = {};
-  let seenCount = 0;
-
-  for (let h = 0; h < nodes.length; h++) {
-    const node = nodes[h];
-
-    const contributors = forceArray(node?.data.entityDescription?.contributorsPreview);
-    for (let i = 0; i < contributors.length; i++) {
-      const c = contributors[i];
-      const name = c.identity?.name;
-      const uri = c.identity?.id;
-      if (!name || !uri) continue;
-
-      const cristinId = extractCristinId(uri);
-      if (!cristinId || seen[cristinId]) continue;
-
-      // If searching, filter by name match
-      if (query && name.toLowerCase().indexOf(query.toLowerCase()) === -1) continue;
-
-      seen[cristinId] = {
-        id: cristinId,
-        displayName: name,
-        description: "Cristin ID: " + cristinId,
-      };
-      seenCount++;
-
-      if (seenCount >= count) break;
-    }
-
-    if (seenCount >= count) break;
   }
 
-  const hits: { id: string; displayName: string; description: string }[] = [];
-  for (const key in seen) {
-    if (Object.prototype.hasOwnProperty.call(seen, key)) {
-      hits.push(seen[key]);
-    }
-  }
-  return jsonResponse({ total: hits.length, count: hits.length, hits });
-}
+  const start = parseInt(req.params.start ?? "0", 10);
+  const count = parseInt(req.params.count ?? "20", 10);
+  const page = Math.floor(start / count) + 1;
+  const searchResponse = searchPerson(
+    query
+      ? // if "query" exists – search the whole database
+        {
+          name: query,
+          page: String(page),
+          results: String(count),
+        }
+      : // if no "query" – list only in own institution
+        {
+          organization: app.config.institution,
+          page: String(page),
+          results: String(count),
+        },
+  );
 
-function extractCristinId(uri?: string): string | undefined {
-  if (!uri) return undefined;
-  const match = uri.match(/\/(\d+)$/);
-  return match ? match[1] : undefined;
-}
-
-function escapeNoql(value: string): string {
-  return value.replace(/'/g, "\\'");
-}
-
-function jsonResponse(body: CustomSelectorServiceResponseBody): Response<{ body: CustomSelectorServiceResponseBody }> {
   return {
     status: 200,
     contentType: "application/json",
-    body,
+    body: {
+      count: searchResponse.count,
+      total: searchResponse.total,
+      hits: searchResponse.hits.map(nvaPersonToHit),
+    },
   };
+}
+
+function nvaPersonToHit(person: NVAPerson): CustomSelectorServiceResponseHit {
+  const id = person.identifiers[0].value;
+
+  const name = [
+    findByType(person.names, "PreferredLastName")?.value ?? findByType(person.names, "LastName")?.value,
+    findByType(person.names, "PreferredFirstName")?.value ?? findByType(person.names, "FirstName")?.value,
+  ]
+    .filter(notNullOrUndefined)
+    .join(", ");
+
+  const affiliations = person.affiliations.filter((affiliation) => affiliation.active);
+
+  // If the current institution is in the list, it should come first
+  affiliations.sort((affiliation) =>
+    getOrganizationIdByAffiliation(affiliation).indexOf(app.config.institution ?? "") === 0 ? -1 : 0,
+  );
+
+  return {
+    id,
+    displayName: `${name} (${id})`,
+    description: affiliations
+      .map(getOrganizationIdByAffiliation)
+      .map(getOrganizationName)
+      .filter(notNullOrUndefined)
+      .join(", "),
+  };
+}
+
+function findByType<T extends { type: string }>(xs: T[], type: T["type"]): T | undefined {
+  return find(xs, (x) => x.type === type);
 }

@@ -16,6 +16,21 @@ export function forceArray<T>(data: T | T[] | undefined | null): T[] {
 }
 
 /**
+ * Returns the first value from an Array that matches a predicate
+ */
+export function find<T, S extends T>(arr: T[], predicate: (value: T) => value is S): S | undefined;
+export function find<T>(arr: T[], predicate: (value: T) => boolean): T | undefined;
+export function find<T>(arr: T[], predicate: (value: T) => boolean): T | undefined {
+  for (const arrItem of arr) {
+    if (predicate(arrItem)) {
+      return arrItem;
+    }
+  }
+
+  return undefined;
+}
+
+/**
  * Extract the UUID from an NVA URI like https://api.nva.unit.no/publication/<uuid>
  */
 export function extractUuidFromUri(uri: string): string {
