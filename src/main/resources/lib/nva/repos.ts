@@ -20,10 +20,6 @@ const PERMISSIONS: AccessControlEntry[] = [
     allow: ["READ"],
   },
   {
-    principal: "role:system.authenticated",
-    allow: ["READ"],
-  },
-  {
     principal: "role:system.admin",
     allow: ["READ", "CREATE", "MODIFY", "DELETE", "PUBLISH", "READ_PERMISSIONS", "WRITE_PERMISSIONS"],
   },
@@ -38,10 +34,12 @@ export function ensureRepoExists(): boolean {
     if (existing) {
       return true;
     }
+
     createRepo({
       id: REPO_NVA_RESULTS,
       rootPermissions: PERMISSIONS,
     });
+
     log.info(`Created repository: ${REPO_NVA_RESULTS}`);
     return false;
   });

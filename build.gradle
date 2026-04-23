@@ -26,6 +26,7 @@ dependencies {
 
   // ── Enonic Market Libraries ────────────────────────────────────────────
   include 'com.enonic.lib:lib-http-client:3.2.2'
+  include "com.enonic.lib:lib-cache:2.2.0"
 
   // ── Item Libraries ────────────────────────────────────────────
   include "no.item:lib-xp-freemarker:3.0.0"

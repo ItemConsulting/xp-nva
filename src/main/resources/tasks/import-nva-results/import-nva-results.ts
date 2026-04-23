@@ -1,26 +1,19 @@
 import { progress, list as listTasks } from "/lib/xp/task";
 import { searchNvaResults, fetchNvaSearchUrl } from "/lib/nva";
 import { importResults, deleteStaleResults } from "/lib/nva";
-import { DEFAULT_PAGE_SIZE, MAX_PAGES, NVA_BASE_URL } from "../../lib/nva/constants";
+import { DEFAULT_PAGE_SIZE, IMPORT_TASK_NAME, MAX_PAGES, NVA_BASE_URL } from "../../lib/nva/constants";
 import type { NvaSearchResponse, NvaResult } from "/lib/nva";
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 5000;
-const IMPORT_TASK_NAME = `${app.name}:import-nva-results`;
-
-function isImportAlreadyRunning(): boolean {
-  const runningTasks = listTasks({ state: "RUNNING" });
-  // If more than 1 task with this name is running, another instance started first
-  return runningTasks.filter((t) => t.name === IMPORT_TASK_NAME).length > 1;
-}
 
 export function run() {
+  const institution = app.config?.institution;
+
   if (isImportAlreadyRunning()) {
     log.info("NVA import is already running — skipping this run.");
     return;
-  }
-  const institution = app.config?.["institution"] ?? "";
-  if (!institution) {
+  } else if (!institution) {
     log.warning("No institution configured in app.config. Skipping NVA import.");
     return;
   }
@@ -37,7 +30,11 @@ export function run() {
   let consecutiveFailures = 0;
   let importAborted = false;
 
-  progress({ info: "Starting NVA import...", current: 0, total: MAX_PAGES });
+  progress({
+    info: "Starting NVA import...",
+    current: 0,
+    total: MAX_PAGES,
+  });
 
   // First request uses search params; subsequent requests follow cursor links
   let nextCursorUrl: string | undefined = undefined;
@@ -157,4 +154,12 @@ function fetchWithRetryFn(
 
   log.warning(`NVA API call failed for page ${page} after ${MAX_RETRIES} retries`);
   return undefined;
+}
+
+function isImportAlreadyRunning(): boolean {
+  const runningTasks = listTasks({
+    state: "RUNNING",
+  });
+  // If more than 1 task with this name is running, another instance started first
+  return runningTasks.filter((t) => t.name === IMPORT_TASK_NAME).length > 1;
 }

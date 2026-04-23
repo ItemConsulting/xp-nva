@@ -23,6 +23,7 @@
     "@enonic-types/lib-websocket": "^7.16.2",
     "@eslint/js": "^10.0.1",
     "@item-enonic-types/global": "^7.15.0",
+    "@item-enonic-types/lib-cache": "^2.2.1",
     "@item-enonic-types/lib-freemarker": "^3.0.0",
     "@item-enonic-types/lib-http-client": "^3.2.2-patch1",
     "@swc/core": "^1.15.30",
