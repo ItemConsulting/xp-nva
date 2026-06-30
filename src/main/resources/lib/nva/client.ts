@@ -8,6 +8,8 @@ import {
   NVAPersonSearch,
   NvaSearchParams,
   NvaSearchResponse,
+  NVAVerifiedFunding,
+  NVAVerifiedFundingResponse,
 } from "./types";
 
 const SEARCH_PARAM_KEYS = [
@@ -224,6 +226,60 @@ export function getFundingSource(identifier: string): NVAFundingSource | undefin
 
     if (res.status === 200 && res.body) {
       return JSON.parse(res.body) as NVAFundingSource;
+    }
+
+    log.warning(`NVA funding source returned status ${res.status}: ${res.message ?? ""}`);
+  } catch (e) {
+    log.error(`NVA search request failed: ${e}`);
+  }
+
+  return undefined;
+}
+
+export function listVerifiedFunding(term: string, offset: string, size: string): NVAVerifiedFunding[] {
+  try {
+    const res = httpRequest({
+      url: "https://api.nva.unit.no/verified-funding/nfr",
+      params: {
+        term,
+        offset,
+        size,
+      },
+      method: "GET",
+      connectionTimeout: HTTP_TIMEOUT,
+      readTimeout: HTTP_TIMEOUT,
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (res.status === 200 && res.body) {
+      const sourceResponse = JSON.parse(res.body) as NVAVerifiedFundingResponse;
+      return sourceResponse.hits;
+    }
+
+    log.warning(`NVA search returned status ${res.status}: ${res.message ?? ""}`);
+  } catch (e) {
+    log.error(`NVA search request failed: ${e}`);
+  }
+
+  return [];
+}
+
+export function getVerifiedFunding(identifier: string): NVAVerifiedFunding | undefined {
+  try {
+    const res = httpRequest({
+      url: `https://api.nva.unit.no/verified-funding/nfr/${identifier}`,
+      method: "GET",
+      connectionTimeout: HTTP_TIMEOUT,
+      readTimeout: HTTP_TIMEOUT,
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (res.status === 200 && res.body) {
+      return JSON.parse(res.body) as NVAVerifiedFunding;
     }
 
     log.warning(`NVA funding source returned status ${res.status}: ${res.message ?? ""}`);

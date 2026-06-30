@@ -222,3 +222,22 @@ export type NVAFundingSource = {
     };
   };
 };
+
+export type NVAVerifiedFundingResponse = {
+  "@context": "https://bibsysdev.github.io/src/funding-context.json";
+  id: string;
+  size: number;
+  nextResults: string | null;
+  previousResults: string | null;
+  hits: NVAVerifiedFunding[];
+};
+
+export type NVAVerifiedFunding = {
+  source: string;
+  id: string;
+  identifier: string;
+  labels: Record<"nb" | "en" | "nn", string | undefined>;
+  lead: string;
+  activeFrom: string;
+  activeTo: string;
+};
